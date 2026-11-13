@@ -3,7 +3,7 @@ import os
 import sqlite3
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "data", "shop.db")
+DB_PATH = os.environ.get("SHOP_DB_PATH", os.path.join(BASE_DIR, "data", "shop.db"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -61,6 +61,27 @@ CREATE TABLE IF NOT EXISTS payments (
     amount REAL NOT NULL,
     pay_type TEXT NOT NULL DEFAULT 'mock',
     status TEXT NOT NULL DEFAULT 'success',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE TABLE IF NOT EXISTS after_sales_tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_no TEXT UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    type TEXT NOT NULL DEFAULT 'refund',
+    reason TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    refund_amount REAL,
+    resolution TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE TABLE IF NOT EXISTS after_sales_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL REFERENCES after_sales_tickets(id),
+    sender_id INTEGER,
+    sender_role TEXT NOT NULL DEFAULT 'user',
+    content TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 """

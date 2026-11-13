@@ -51,3 +51,19 @@ class StatusUpdateRequest(BaseModel):
 class PaymentRequest(BaseModel):
     order_id: int
     pay_type: str = "mock"
+
+
+class AfterSalesCreateRequest(BaseModel):
+    order_id: int
+    type: str = Field(default="refund", pattern=r"^(refund|return|exchange|damage|logistics|other)$")
+    reason: str = Field(default="", max_length=1000)
+
+
+class AfterSalesMessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class AfterSalesReviewRequest(BaseModel):
+    status: str = Field(pattern=r"^(reviewing|awaiting_user|rejected|completed)$")
+    resolution: str = Field(default="", max_length=1000)
+    refund_amount: Optional[float] = Field(default=None, ge=0)

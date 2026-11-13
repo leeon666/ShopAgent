@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db
-from .routers import admin, auth, cart, orders, payment, products
+from .routers import admin, aftersales, auth, cart, orders, payment, products
 from .seed import seed_if_empty
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +27,7 @@ app.include_router(products.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(payment.router)
+app.include_router(aftersales.router)
 app.include_router(admin.router)
 
 
