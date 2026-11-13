@@ -15,6 +15,7 @@ ShopAgent 是一个“商城后端 + 智能售后 Agent”的综合项目。它�
 - LangGraph 售后 Agent
 - 订单、物流、售后政策三个只读工具
 - 结构化 Agent 输出与人工审批标记
+- 多轮售后上下文与超长会话压缩
 - X-Request-ID 与 Agent 节点耗时记录
 - 30 条案例的三方案评测
 

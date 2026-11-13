@@ -9,6 +9,25 @@ from ..config import OPENAI_API_KEY, OPENAI_MODEL
 from ..db import AgentRun, AfterSalesTicket, SessionLocal
 from ..observability import get_request_id, new_request_id
 from .graph import build_graph
+from .llm import complete_text
+
+
+def _conversation_context(ticket: AfterSalesTicket) -> tuple[str, bool]:
+    history = [
+        f"{message.sender_role}: {message.content}"
+        for message in ticket.messages
+        if message.content
+    ]
+    text = "\n".join(history[-20:])
+    if len(text) <= 1200:
+        return text, False
+    summary = complete_text(
+        "压缩电商售后多轮对话，保留订单号、商品问题、用户诉求、已提供证据和未解决事项。",
+        text,
+    )
+    if not summary:
+        summary = text[:600] + "\n...[较早对话已压缩]...\n" + text[-600:]
+    return summary, True
 
 
 def execute_agent_run(
@@ -18,6 +37,7 @@ def execute_agent_run(
     message: str | None = None,
 ) -> AgentRun:
     input_message = message or ticket.reason or "请帮我处理售后"
+    context_summary, context_compressed = _conversation_context(ticket)
     request_id = get_request_id() or new_request_id()
     started = time.perf_counter()
     run = AgentRun(
@@ -39,6 +59,8 @@ def execute_agent_run(
                 "user_id": user["id"],
                 "request_id": request_id,
                 "message": input_message,
+                "context_summary": context_summary,
+                "context_compressed": context_compressed,
                 "order_id": ticket.order_id,
                 "tool_results": {},
                 "steps": [],
@@ -110,6 +132,7 @@ def stream_agent_run_events(
     if ticket is None:
         raise ValueError("售后工单不存在")
     input_message = message or ticket.reason or "请帮我处理售后"
+    context_summary, context_compressed = _conversation_context(ticket)
     request_id = get_request_id() or new_request_id()
     started = time.perf_counter()
     run = AgentRun(
@@ -138,6 +161,8 @@ def stream_agent_run_events(
                 "user_id": user["id"],
                 "request_id": request_id,
                 "message": input_message,
+                "context_summary": context_summary,
+                "context_compressed": context_compressed,
                 "order_id": ticket.order_id,
                 "tool_results": {},
                 "steps": [],

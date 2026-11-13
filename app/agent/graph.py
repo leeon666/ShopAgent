@@ -18,6 +18,8 @@ class AgentState(TypedDict, total=False):
     user_id: int
     request_id: str
     message: str
+    context_summary: str
+    context_compressed: bool
     intent: str
     order_id: int
     tool_results: dict[str, Any]
@@ -68,7 +70,15 @@ def parse_intent(state: AgentState) -> AgentState:
     state["token_budget"] = state.get("token_budget", 2000)
     state["max_steps"] = state.get("max_steps", 8)
     state["tokens_used"] = state.get("tokens_used", 0)
-    return _record_step(state, "parse_intent", {"intent": state["intent"]})
+    return _record_step(
+        state,
+        "parse_intent",
+        {
+            "intent": state["intent"],
+            "context_compressed": state.get("context_compressed", False),
+            "context_chars": len(state.get("context_summary", "")),
+        },
+    )
 
 
 def load_order(state: AgentState) -> AgentState:
@@ -174,7 +184,12 @@ def generate(state: AgentState) -> AgentState:
     )
     llm_summary = complete_text(
         "你是电商售后助手。只根据提供的订单与政策证据输出简洁中文摘要，不要编造事实。",
-        f"顾客诉求：{state.get('message')}\n意图：{state.get('intent')}\n订单：{order}\n政策：{policies}",
+        (
+            f"当前诉求：{state.get('message')}\n"
+            f"意图：{state.get('intent')}\n"
+            f"历史会话：{state.get('context_summary', '')}\n"
+            f"订单：{order}\n政策：{policies}"
+        ),
     )
 
     policy_required = state.get("intent") in POLICY_INTENTS
@@ -193,6 +208,8 @@ def generate(state: AgentState) -> AgentState:
         "requires_human_approval": requires_approval,
         "confidence": confidence,
         "logistics": logistics,
+        "context_compressed": state.get("context_compressed", False),
+        "conversation_summary": state.get("context_summary", "")[:500],
     }
     state["tokens_used"] = state.get("tokens_used", 0) + 80
     return _record_step(state, "generate", {"action": action})

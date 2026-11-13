@@ -96,3 +96,31 @@ def test_agent_sse_stream():
     assert '"event": "run_started"' in body
     assert '"event": "node"' in body
     assert '"event": "completed"' in body
+
+
+def test_agent_compresses_long_conversation():
+    token = _register()
+    headers = {"Authorization": f"Bearer {token}"}
+    order = _paid_order(token)
+    ticket = client.post(
+        "/api/after-sales",
+        json={"order_id": order["id"], "type": "refund", "reason": "需要退款"},
+        headers=headers,
+    ).json()
+    long_text = "这是顾客提供的详细问题说明。" * 20
+    for _ in range(8):
+        client.post(
+            f"/api/after-sales/{ticket['id']}/messages",
+            json={"content": long_text},
+            headers=headers,
+        )
+
+    run = client.post(
+        f"/api/agent-runs/tickets/{ticket['id']}",
+        json={"message": "可以退款吗"},
+        headers=headers,
+    )
+    assert run.status_code == 200
+    data = run.json()
+    assert data["output"]["context_compressed"] is True
+    assert data["steps"][0]["detail"]["context_compressed"] is True
