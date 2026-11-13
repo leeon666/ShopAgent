@@ -187,6 +187,18 @@ Agent 三方案评测：
 
 2 分钟录屏脚本见 [docs/DEMO.md](docs/DEMO.md)。
 
+成片：[docs/demo/ShopAgent-Demo.mp4](docs/demo/ShopAgent-Demo.mp4)。
+
+自动录制：
+
+```powershell
+uv pip install --python .venv/Scripts/python.exe -r requirements-demo.txt
+.venv/Scripts/python.exe -m playwright install ffmpeg
+.venv/Scripts/python.exe scripts/record_demo.py --full
+```
+
+录制脚本使用本机 Chrome，输出 WebM 到 `docs/demo/`。
+
 ## 来源说明
 
 底座来自开源项目 `wind5516/ecommerce-shop`，当前仓库已完成大量结构改造和功能新增。使用和发布前请自行核对原项目许可证。
