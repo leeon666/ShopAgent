@@ -1,0 +1,15 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: shopagent-db
+    environment:
+      POSTGRES_USER: shopagent
+      POSTGRES_PASSWORD: shopagent
+      POSTGRES_DB: shopagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - shopagent_pgdata:/var/lib/postgresql/data
+
+volumes:
+  shopagent_pgdata:

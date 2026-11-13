@@ -32,3 +32,12 @@ uv venv .venv
 uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
 .venv/Scripts/python.exe run.py
 ```
+
+使用 PostgreSQL：
+
+```bash
+docker compose up -d db
+alembic upgrade head
+$env:DATABASE_URL = "postgresql+psycopg://shopagent:shopagent@127.0.0.1:5432/shopagent"
+.venv/Scripts/python.exe run.py
+```
