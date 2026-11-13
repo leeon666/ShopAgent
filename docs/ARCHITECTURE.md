@@ -13,7 +13,7 @@ flowchart TD
     SHOP --> DB[(PostgreSQL)]
     AS --> DB
     AGENT --> DB
-    AGENT --> RAG[知识检索]
+    AGENT --> RAG[BM25 + 向量 + RRF]
     RAG --> PGV[(pgvector)]
     RAG -. SQLite 离线回退 .-> JSON[(JSON Embedding)]
 
@@ -29,7 +29,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    START --> PARSE[parse_intent]
+    START --> PARSE[LLM 工具规划 / 规则兜底]
     PARSE --> ORDER[get_order]
     ORDER --> ROUTE{intent}
     ROUTE -->|logistics| LOGISTICS[get_logistics]
@@ -62,6 +62,22 @@ Agent 的输出必须符合固定结构：
 ### 工具只读
 
 订单、物流和政策检索工具都是只读的。高风险退款、退货、换货和赔付只生成建议，不直接执行。
+
+### 高风险写操作必须确认
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant P as Proposal
+    participant H as Admin
+    participant S as Business Service
+
+    A->>P: 创建退款执行提案
+    P->>H: 等待人工审批
+    H->>P: 批准 / 驳回
+    P->>S: 批准后执行确定性状态变更
+    S-->>P: 写入审计日志
+```
 
 ### 确定性代码优先
 

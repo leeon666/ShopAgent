@@ -6,11 +6,13 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from .llm import complete_text
+from .llm import complete_json, complete_text
 from .tools import check_return_policy, execute_tool, get_logistics, get_order
 
 POLICY_INTENTS = {"refund", "return", "exchange", "damage"}
 HIGH_RISK_INTENTS = {"refund", "return", "exchange", "damage"}
+ALLOWED_INTENTS = {"logistics", "refund", "return", "exchange", "damage", "other"}
+ALLOWED_TOOLS = {"get_order", "get_logistics", "check_return_policy"}
 
 
 class AgentState(TypedDict, total=False):
@@ -21,6 +23,9 @@ class AgentState(TypedDict, total=False):
     context_summary: str
     context_compressed: bool
     intent: str
+    planned_tools: list[str]
+    plan_source: str
+    plan_confidence: float
     order_id: int
     tool_results: dict[str, Any]
     steps: list[dict]
@@ -64,17 +69,85 @@ def _detect_intent(message: str) -> str:
     return "other"
 
 
+def _default_tools(intent: str) -> list[str]:
+    tools = ["get_order"]
+    if intent == "logistics":
+        tools.append("get_logistics")
+    elif intent in POLICY_INTENTS:
+        tools.append("check_return_policy")
+    return tools
+
+
+def _plan_with_llm(message: str, context_summary: str) -> dict | None:
+    system_prompt = """
+你是电商售后请求规划器。你只能从给定工具中选择，不允许生成写操作。
+输出严格 JSON：
+{
+  "intent": "logistics|refund|return|exchange|damage|other",
+  "tools": ["get_order", "get_logistics", "check_return_policy"],
+  "confidence": 0.0,
+  "reason": "简短说明"
+}
+
+工具：
+1. get_order：查询当前用户订单，始终需要。
+2. get_logistics：查询物流，只有物流、签收、运输、配送相关问题才选择。
+3. check_return_policy：检索售后政策，退款、退货、换货、破损、保修和赔付问题需要。
+
+不要选择与当前诉求无关的工具。
+""".strip()
+    user_prompt = f"当前请求：{message}\n历史会话摘要：{context_summary or '无'}"
+    result = complete_json(system_prompt, user_prompt, timeout_seconds=15)
+    if not result:
+        return None
+    data = result["data"]
+    intent = data.get("intent")
+    tools = data.get("tools")
+    if intent not in ALLOWED_INTENTS or not isinstance(tools, list):
+        return None
+    selected = [tool for tool in tools if tool in ALLOWED_TOOLS]
+    if "get_order" not in selected:
+        selected.insert(0, "get_order")
+    usage = result.get("usage", {})
+    return {
+        "intent": intent,
+        "tools": list(dict.fromkeys(selected)),
+        "confidence": max(0.0, min(1.0, float(data.get("confidence", 0.6)))),
+        "reason": str(data.get("reason", ""))[:300],
+        "tokens": int(usage.get("total_tokens", 0)),
+        "model": result.get("model"),
+    }
+
+
 def parse_intent(state: AgentState) -> AgentState:
     state["_last_step_ts"] = time.perf_counter()
-    state["intent"] = _detect_intent(state.get("message", ""))
+    plan = _plan_with_llm(
+        state.get("message", ""),
+        state.get("context_summary", ""),
+    )
+    if plan:
+        state["intent"] = plan["intent"]
+        state["planned_tools"] = plan["tools"]
+        state["plan_source"] = "llm"
+        state["plan_confidence"] = plan["confidence"]
+        state["tokens_used"] = plan["tokens"]
+    else:
+        state["intent"] = _detect_intent(state.get("message", ""))
+        state["planned_tools"] = _default_tools(state["intent"])
+        state["plan_source"] = "rules"
+        state["plan_confidence"] = 0.7
+        state["tokens_used"] = 0
     state["token_budget"] = state.get("token_budget", 2000)
     state["max_steps"] = state.get("max_steps", 8)
-    state["tokens_used"] = state.get("tokens_used", 0)
     return _record_step(
         state,
         "parse_intent",
         {
             "intent": state["intent"],
+            "tools": state.get("planned_tools", []),
+            "plan_source": state.get("plan_source", "rules"),
+            "plan_confidence": state.get("plan_confidence", 0.7),
+            "plan_reason": plan.get("reason") if plan else "",
             "context_compressed": state.get("context_compressed", False),
             "context_chars": len(state.get("context_summary", "")),
         },
@@ -125,9 +198,19 @@ def route_after_order(state: AgentState) -> str:
         return "stop"
     if state.get("tokens_used", 0) >= state.get("token_budget", 2000):
         return "stop"
-    if state.get("intent") == "logistics":
+    if "get_logistics" in state.get("planned_tools", []):
         return "load_logistics"
-    if state.get("intent") in POLICY_INTENTS:
+    if "check_return_policy" in state.get("planned_tools", []):
+        return "retrieve_policy"
+    return "generate"
+
+
+def route_after_logistics(state: AgentState) -> str:
+    if state.get("step_count", 0) >= state.get("max_steps", 8):
+        return "stop"
+    if state.get("tokens_used", 0) >= state.get("token_budget", 2000):
+        return "stop"
+    if "check_return_policy" in state.get("planned_tools", []):
         return "retrieve_policy"
     return "generate"
 
@@ -210,6 +293,7 @@ def generate(state: AgentState) -> AgentState:
         "logistics": logistics,
         "context_compressed": state.get("context_compressed", False),
         "conversation_summary": state.get("context_summary", "")[:500],
+        "decision_source": state.get("plan_source", "rules"),
     }
     state["tokens_used"] = state.get("tokens_used", 0) + 80
     return _record_step(state, "generate", {"action": action})
@@ -267,7 +351,11 @@ def build_graph():
             "stop": "stop",
         },
     )
-    graph.add_edge("load_logistics", "generate")
+    graph.add_conditional_edges(
+        "load_logistics",
+        route_after_logistics,
+        {"retrieve_policy": "retrieve_policy", "generate": "generate", "stop": "stop"},
+    )
     graph.add_edge("retrieve_policy", "generate")
     graph.add_edge("generate", "verify")
     graph.add_edge("verify", END)

@@ -27,6 +27,24 @@ class FakeClient:
         return FakeResponse()
 
 
+class JsonResponse:
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return {
+            "model": "test-model",
+            "choices": [{"message": {"content": '{"intent":"refund","tools":["get_order"]}'}}],
+            "usage": {"total_tokens": 42},
+        }
+
+
+class JsonClient(FakeClient):
+    def post(self, url, json, headers):
+        assert json["response_format"] == {"type": "json_object"}
+        return JsonResponse()
+
+
 def test_openai_compatible_client(monkeypatch):
     monkeypatch.setattr(llm, "OPENAI_API_KEY", "test-key")
     monkeypatch.setattr(llm, "OPENAI_BASE_URL", "https://example.test/v1")
@@ -35,3 +53,14 @@ def test_openai_compatible_client(monkeypatch):
 
     result = llm.complete_text("system", "user")
     assert result == "模型生成的售后摘要"
+
+
+def test_openai_compatible_json_client(monkeypatch):
+    monkeypatch.setattr(llm, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(llm, "OPENAI_BASE_URL", "https://example.test/v1")
+    monkeypatch.setattr(llm, "OPENAI_MODEL", "test-model")
+    monkeypatch.setattr(llm.httpx, "Client", JsonClient)
+
+    result = llm.complete_json("system", "user")
+    assert result["data"]["intent"] == "refund"
+    assert result["usage"]["total_tokens"] == 42

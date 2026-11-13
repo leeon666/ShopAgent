@@ -7,6 +7,7 @@ const state = {
   selectedTicket: null,
   filter: "all",
   lastRun: null,
+  proposal: null,
   evaluation: null,
   auditLoaded: false,
 };
@@ -240,6 +241,7 @@ function renderNoTicket() {
 
 function resetAgentPanel() {
   state.lastRun = null;
+  state.proposal = null;
   $("#agentPlaceholder").classList.remove("hidden");
   $("#agentResult").classList.add("hidden");
   $("#traceSummary").textContent = "还没有运行记录";
@@ -334,6 +336,7 @@ function renderAgentResult(run) {
   const output = run.output || {};
   $("#agentResult").classList.remove("hidden");
   $("#resultIntent").textContent = escapeHtml(output.intent || "--");
+  $("#resultPlanSource").textContent = output.decision_source === "llm" ? "DeepSeek" : "规则兜底";
   $("#resultSummary").textContent = output.summary || "--";
   $("#resultRequestId").textContent = run.request_id || "--";
   $("#resultAction").textContent = actionLabels[output.recommended_action] || output.recommended_action || "--";
@@ -362,21 +365,78 @@ function renderAgentResult(run) {
   const actions = $("#approvalActions");
   if (!output.requires_human_approval) {
     actions.innerHTML = "";
-  } else if (state.selectedTicket.status === "reviewing") {
-    actions.innerHTML = `
-      <button class="button button-primary" data-approval="completed">批准完成</button>
-      <button class="button button-secondary" data-approval="awaiting_user">要求补充</button>
-      <button class="button button-danger" data-approval="rejected">驳回</button>
-    `;
   } else {
     actions.innerHTML = `
-      <button class="button button-primary" data-approval="reviewing">转入人工审核</button>
-      <button class="button button-danger" data-approval="rejected">驳回</button>
+      <button class="button button-primary" data-proposal-action="create">生成执行提案</button>
+      <button class="button button-secondary" data-approval="awaiting_user">要求补充</button>
     `;
   }
+  actions.querySelectorAll("[data-proposal-action]").forEach((button) => {
+    button.addEventListener("click", createProposal);
+  });
   actions.querySelectorAll("[data-approval]").forEach((button) => {
     button.addEventListener("click", () => reviewTicket(button.dataset.approval));
   });
+  renderProposalActions();
+}
+
+function renderProposalActions() {
+  const actions = $("#approvalActions");
+  if (!state.proposal) return;
+  const proposal = state.proposal;
+  if (proposal.status !== "pending") {
+    actions.innerHTML = `
+      <div class="proposal-state">
+        <strong>执行提案 #${proposal.id}</strong>
+        <span>${proposal.status === "approved" ? "已批准执行" : "已驳回"}</span>
+      </div>
+    `;
+    return;
+  }
+  actions.innerHTML = `
+    <div class="proposal-state">
+      <strong>执行提案 #${proposal.id} · 待审批</strong>
+      <span>退款金额 ${formatMoney(proposal.payload?.refund_amount)}</span>
+    </div>
+    <button class="button button-primary" data-proposal-review="approve">批准执行</button>
+    <button class="button button-danger" data-proposal-review="reject">驳回提案</button>
+  `;
+  actions.querySelectorAll("[data-proposal-review]").forEach((button) => {
+    button.addEventListener("click", () => reviewProposal(button.dataset.proposalReview));
+  });
+}
+
+async function createProposal() {
+  if (!state.lastRun) return toast("请先运行 Agent");
+  try {
+    state.proposal = await request(`/api/agent-runs/${state.lastRun.id}/proposals`, {
+      method: "POST",
+      tokenType: "user",
+      json: false,
+    });
+    toast(`执行提案 #${state.proposal.id} 已创建`);
+    renderProposalActions();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function reviewProposal(action) {
+  if (!state.proposal) return;
+  try {
+    state.proposal = await request(`/api/proposals/${state.proposal.id}/${action}`, {
+      method: "POST",
+      tokenType: "admin",
+      body: {
+        decision_note:
+          action === "approve" ? "管理员确认执行退款提案" : "管理员驳回退款提案",
+      },
+    });
+    toast(action === "approve" ? "提案已批准并执行" : "提案已驳回");
+    await loadDashboard();
+  } catch (error) {
+    toast(error.message);
+  }
 }
 
 async function reviewTicket(status) {

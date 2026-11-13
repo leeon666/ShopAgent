@@ -24,10 +24,11 @@ def test_knowledge_ingest_and_search():
     )
     assert created.status_code == 200
 
-    result = client.get("/api/knowledge/search", params={"q": "七天内可以退货吗", "top_k": 3})
+    result = client.get("/api/knowledge/search", params={"q": "定制商品可以无理由退货吗", "top_k": 3})
     assert result.status_code == 200
     items = result.json()["items"]
     assert items
     assert items[0]["title"] == "退换货政策"
     assert items[0]["source"] == "policy/return-v1.md"
     assert "七天无理由退货" in items[0]["content"]
+    assert items[0]["retrieval_mode"] == "hybrid_rrf"

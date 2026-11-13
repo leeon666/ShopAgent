@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db
 from .observability import RequestIdMiddleware
-from .routers import admin, aftersales, agent, auth, cart, knowledge, orders, payment, products
+from .routers import admin, aftersales, agent, auth, cart, knowledge, orders, payment, products, proposals
 from .seed import seed_if_empty
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -32,6 +32,7 @@ app.include_router(payment.router)
 app.include_router(aftersales.router)
 app.include_router(knowledge.router)
 app.include_router(agent.router)
+app.include_router(proposals.router)
 app.include_router(admin.router)
 
 

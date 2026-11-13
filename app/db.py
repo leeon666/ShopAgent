@@ -236,6 +236,23 @@ class AgentRun(Base):
     finished_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
 
+class ActionProposal(Base):
+    __tablename__ = "action_proposals"
+    __table_args__ = (UniqueConstraint("agent_run_id", name="uq_action_proposal_agent_run"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("after_sales_tickets.id"))
+    agent_run_id: Mapped[int] = mapped_column(ForeignKey("agent_runs.id"))
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    action_type: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    decision_note: Mapped[str] = mapped_column(Text, default="")
+    reviewed_by_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    reviewed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+
 engine_kwargs: dict = {"pool_pre_ping": True}
 if DATABASE_URL.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}

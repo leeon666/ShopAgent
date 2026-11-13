@@ -72,6 +72,22 @@ def test_agent_run_with_rag_and_approval():
     assert fetched.status_code == 200
     assert fetched.json()["output"]["recommended_action"] == "create_refund_review"
 
+    proposal = client.post(f"/api/agent-runs/{data['id']}/proposals", headers=headers)
+    assert proposal.status_code == 200
+    proposal_data = proposal.json()
+    assert proposal_data["status"] == "pending"
+    assert proposal_data["action_type"] == "refund_review"
+    assert proposal_data["payload"]["refund_amount"] == order["total_amount"]
+
+    approved = client.post(
+        f"/api/proposals/{proposal_data['id']}/approve",
+        headers=admin_headers,
+        json={"decision_note": "批准测试退款"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+    assert client.get(f"/api/after-sales/{ticket['id']}", headers=headers).json()["status"] == "completed"
+
 
 def test_agent_sse_stream():
     token = _register()

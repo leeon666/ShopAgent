@@ -77,3 +77,7 @@ class KnowledgeIngestRequest(BaseModel):
 
 class AgentRunRequest(BaseModel):
     message: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ProposalDecisionRequest(BaseModel):
+    decision_note: str = Field(default="", max_length=1000)

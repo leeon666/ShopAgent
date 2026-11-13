@@ -132,6 +132,9 @@ Agent 负责理解顾客售后诉求、检索售后政策、调用订单和退�
 - 已增加 PostgreSQL pgvector 向量表、HNSW 索引和向量检索代码，PostgreSQL DDL 离线验证通过。
 - 已增加多轮售后上下文与超长历史压缩，Agent 输出会标记是否发生压缩。
 - 评测已补齐工具调用正确率和可配置 Token 成本估算。
+- 已接入 DeepSeek `deepseek-flash`，模型可自主选择订单、物流和政策工具。
+- RAG 已升级为 BM25 + 向量 + RRF Hybrid Search。
+- 高风险结果已改为执行提案，管理员确认后由业务代码执行。
 - 2 分钟实际演示视频、自动录制脚本和数据库 schema 防错检查已完成。
 - Docker Compose、PostgreSQL、pgvector、Redis 和 Celery 已完成实机验证。
 - 下一步仅剩配置真实 OpenAI 兼容模型 Key 并验证模型生成路径。

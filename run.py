@@ -2,8 +2,10 @@
 import argparse
 
 import uvicorn
+from dotenv import load_dotenv
 
 if __name__ == "__main__":
+    load_dotenv()
     parser = argparse.ArgumentParser(description="启动电商商城系统")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)

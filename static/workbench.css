@@ -398,6 +398,15 @@ button { cursor: pointer; }
 .missing-list { margin: 0; padding-left: 18px; color: #88560d; font-size: 11px; line-height: 1.65; }
 .approval-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 15px; }
 .approval-actions button { flex: 1; min-width: 100px; }
+.proposal-state {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e6d5ae;
+  border-radius: 10px;
+  background: #fff8e9;
+}
+.proposal-state strong { display: block; font-size: 11px; }
+.proposal-state span { display: block; margin-top: 4px; color: #8d681a; font-size: 10px; }
 
 .section-head { margin-bottom: 15px; }
 .live-dot { color: #0f9f8f; font-size: 9px; font-weight: 900; letter-spacing: .08em; }

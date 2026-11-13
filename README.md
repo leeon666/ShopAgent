@@ -12,9 +12,12 @@ ShopAgent 是一个“商城后端 + 智能售后 Agent”的综合项目。它�
 - Redis 缓存与登录限流
 - Celery 订单超时任务
 - 售后政策知识库与带引用检索
+- BM25 + 向量 + RRF Hybrid Search
 - LangGraph 售后 Agent
+- DeepSeek/OpenAI 兼容模型驱动工具选择
 - 订单、物流、售后政策三个只读工具
 - 结构化 Agent 输出与人工审批标记
+- Agent 执行提案与管理员确认执行
 - 多轮售后上下文与超长会话压缩
 - X-Request-ID 与 Agent 节点耗时记录
 - 30 条案例的三方案评测
@@ -102,6 +105,21 @@ Dockerfile 支持 `PYTHON_IMAGE` build arg，默认使用官方 `python:3.12-sli
 - Celery worker 注册并执行 `orders.expire_pending`
 - 订单取消后库存恢复
 - 审计日志 request_id 可贯穿 API 和异步任务
+- DeepSeek `deepseek-flash` 已完成真实规划和摘要调用
+- 模型可自主选择订单、物流和政策工具
+- 执行提案必须经过管理员批准
+
+## 模型配置
+
+项目使用 OpenAI 兼容 `/chat/completions` 协议。当前配置示例：
+
+```env
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+OPENAI_MODEL=deepseek-flash
+```
+
+密钥只放在本地 `.env`，该文件已加入 `.gitignore`。没有 Key 时，系统自动退回规则 Agent。
 
 ## Agent 使用
 
@@ -143,8 +161,21 @@ Content-Type: application/json
 - requires_human_approval
 - confidence
 - steps 与 tool_results
+- decision_source（llm / rules）
 
 高风险退款、退货、换货和破损诉求只生成处理建议，不直接执行退款。
+
+模型生成结果后，可以创建执行提案：
+
+```http
+POST /api/agent-runs/{run_id}/proposals
+```
+
+管理员批准后才执行：
+
+```http
+POST /api/proposals/{proposal_id}/approve
+```
 
 ## 评测
 
@@ -184,12 +215,12 @@ Agent 三方案评测：
 .venv/Scripts/python.exe -m pytest -q
 ```
 
-当前共 11 条测试，覆盖售后闭环、越权、幂等、审计、订单超时、知识检索、Agent 审批、上下文压缩、SSE、数据库 schema 检查和 OpenAI 兼容接口。
+当前共 12 条测试，覆盖售后闭环、越权、幂等、审计、订单超时、Hybrid 检索、Agent 审批、执行提案、上下文压缩、SSE、数据库 schema 检查和模型兼容接口。
 
 ## 已知限制
 
-- OpenAI 兼容请求与响应解析已通过 mock 测试；外部真实模型仍需用户自行配置 `OPENAI_API_KEY`。
-- SQLite 使用 JSON Embedding 作为离线回退，PostgreSQL 已使用 pgvector。
+- SQLite 使用 JSON/hash Embedding 作为离线回退；PostgreSQL 使用 pgvector + Hybrid RRF。
+- 当前 Embedding 仍不是 BGE/e5 语义模型，检索行为依赖向量与 BM25 融合。
 - Agent 前端目前是演示页，尚未做成完整的生产级客服工作台。
 
 ## 演示材料

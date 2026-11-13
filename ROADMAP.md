@@ -30,7 +30,9 @@
 - [x] 增加结构化输出、停止条件与人工审批标记
 - [x] 增加 AgentRun 运行记录与节点步骤
 - [x] 增加多轮售后上下文与超长历史压缩
-- [ ] 接入真实 OpenAI 兼容模型并验证
+- [x] 接入 DeepSeek `deepseek-flash` 并验证模型驱动工具选择
+- [x] 增加 BM25 + 向量 + RRF Hybrid Search
+- [x] 增加 Agent 执行提案与管理员确认执行
 - [x] 增加 X-Request-ID 全链路与 Agent 节点耗时/Trace 字段
 - [x] 建立 30 条售后案例并完成纯基线/RAG/完整 Agent 三方案评测
 - [x] 增加工具调用正确率、Token 与可配置成本估算

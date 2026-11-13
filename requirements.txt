@@ -8,3 +8,4 @@ celery
 langgraph
 httpx
 pgvector
+python-dotenv
