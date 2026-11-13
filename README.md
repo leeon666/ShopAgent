@@ -183,11 +183,11 @@ Agent 三方案评测：
 .venv/Scripts/python.exe -m pytest -q
 ```
 
-当前共 10 条测试，覆盖售后闭环、越权、幂等、审计、订单超时、知识检索、Agent 审批、上下文压缩、SSE 和数据库 schema 检查。
+当前共 11 条测试，覆盖售后闭环、越权、幂等、审计、订单超时、知识检索、Agent 审批、上下文压缩、SSE、数据库 schema 检查和 OpenAI 兼容接口。
 
 ## 已知限制
 
-- 真实 OpenAI 兼容模型接口需要配置 `OPENAI_API_KEY` 后再验证。
+- OpenAI 兼容请求与响应解析已通过 mock 测试；外部真实模型仍需用户自行配置 `OPENAI_API_KEY`。
 - SQLite 使用 JSON Embedding 作为离线回退，PostgreSQL 已使用 pgvector。
 - Agent 前端目前是演示页，尚未做成完整的生产级客服工作台。
 
