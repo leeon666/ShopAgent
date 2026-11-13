@@ -7,6 +7,7 @@ task_always_eager = not bool(REDIS_URL)
 
 celery_app = Celery(
     "shopagent",
+    include=["app.tasks"],
     broker=REDIS_URL or "memory://",
     backend=REDIS_URL or "cache+memory://",
 )

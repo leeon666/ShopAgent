@@ -28,7 +28,10 @@ services:
       retries: 10
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: docker.m.daocloud.io/library/python:3.12-slim
     container_name: shopagent-api
     environment:
       DATABASE_URL: postgresql+psycopg://shopagent:shopagent@db:5432/shopagent
@@ -44,7 +47,10 @@ services:
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: docker.m.daocloud.io/library/python:3.12-slim
     container_name: shopagent-worker
     environment:
       DATABASE_URL: postgresql+psycopg://shopagent:shopagent@db:5432/shopagent

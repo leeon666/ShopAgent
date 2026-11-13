@@ -91,6 +91,7 @@ def create_ticket(body: AfterSalesCreateRequest, user: dict = Depends(get_curren
         reason=body.reason.strip(),
     )
     session.add(ticket)
+    session.flush()
     record_audit(session, user, "aftersale.create", "after_sales_ticket", ticket.id, {"ticket_no": ticket.ticket_no})
     session.commit()
     session.refresh(ticket)

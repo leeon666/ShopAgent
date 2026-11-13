@@ -16,16 +16,16 @@
 - [x] 把 SQLite 原始 SQL 迁移到 SQLAlchemy
 - [x] 引入 Alembic 数据库迁移（已在 SQLite 验证）
 - [x] 增加 DATABASE_URL，支持 PostgreSQL
-- [ ] 使用 Docker PostgreSQL 验证迁移（本机 Docker Desktop 暂未启动）
+- [x] 使用 Docker PostgreSQL 验证迁移
 - [x] 增加 Redis 缓存与登录限流（无 Redis 时回退 fakeredis）
 - [x] 增加 Celery 异步任务，处理订单超时取消（无 Redis 时 eager 模式）
 - [x] 增加审计日志与幂等键
-- [ ] 使用 Docker 真 Redis + Celery worker 验证异步链路
+- [x] 使用 Docker 真 Redis + Celery worker 验证异步链路
 - [ ] 完善 RBAC 角色与权限
 - [x] 构建售后政策知识库与检索，返回引用来源
 - [x] 增加检索评测脚本与案例集，计算 Hit@1 / Hit@K / MRR
 - [x] 增加 PostgreSQL pgvector 向量表、HNSW 索引和向量检索路径
-- [ ] 使用真实 PostgreSQL 容器验证 pgvector 查询
+- [x] 使用真实 PostgreSQL 容器验证 pgvector 查询
 - [x] 实现 LangGraph 售后 Agent 与 3 个只读业务工具
 - [x] 增加结构化输出、停止条件与人工审批标记
 - [x] 增加 AgentRun 运行记录与节点步骤
@@ -41,7 +41,7 @@
 - [x] 增加架构图和 2 分钟演示脚本
 - [x] 完成 2 分钟实际录屏与自动录制脚本
 - [x] 增加启动时数据库 schema 防错检查
-- [ ] 完成 Docker 实机启动与真实基础设施验收
+- [x] 完成 Docker 实机启动与真实基础设施验收
 
 ## 运行
 

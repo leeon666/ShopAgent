@@ -90,7 +90,17 @@ docker compose up --build
 
 Compose 会启动 PostgreSQL、Redis、API 和 Celery worker，并在 API 启动前运行 `alembic upgrade head`。
 
-当前开发机受 WSL/Docker Desktop 限制，Compose 还没有完成实机启动验证。
+Dockerfile 支持 `PYTHON_IMAGE` build arg，默认使用官方 `python:3.12-slim`。当前 Compose 为受限网络环境配置了可用镜像源，可按需替换。
+
+已完成的实机验证：
+
+- PostgreSQL 16 + pgvector 正常运行
+- Alembic 迁移到 `13b62b3fc633`
+- pgvector 向量维度为 128
+- Redis 缓存与限流正常
+- Celery worker 注册并执行 `orders.expire_pending`
+- 订单取消后库存恢复
+- 审计日志 request_id 可贯穿 API 和异步任务
 
 ## Agent 使用
 
@@ -177,10 +187,8 @@ Agent 三方案评测：
 
 ## 已知限制
 
-- PostgreSQL + pgvector 尚未完成真实容器验证。
-- Redis/Celery 尚未完成真实 worker 验证。
 - 真实 OpenAI 兼容模型接口需要配置 `OPENAI_API_KEY` 后再验证。
-- 当前知识检索有 SQLite/JSON 离线实现，后续切换 pgvector。
+- SQLite 使用 JSON Embedding 作为离线回退，PostgreSQL 已使用 pgvector。
 - Agent 前端目前是演示页，尚未做成完整的生产级客服工作台。
 
 ## 演示材料
