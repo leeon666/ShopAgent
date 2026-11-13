@@ -37,7 +37,7 @@ app.include_router(admin.router)
 
 @app.get("/", include_in_schema=False)
 def index():
-    return RedirectResponse("/static/index.html")
+    return RedirectResponse("/static/workbench.html")
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

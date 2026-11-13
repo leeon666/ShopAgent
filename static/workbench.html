@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopAgent · 售后运营工作台</title>
+  <link rel="stylesheet" href="/static/workbench.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <strong>ShopAgent</strong>
+        <span>售后运营工作台</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <span class="env-pill"><i></i> PostgreSQL + pgvector</span>
+      <span class="env-pill muted"><i></i> Redis / Celery Online</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="generateDemo" class="button button-ghost">生成演示工单</button>
+      <div class="avatar">DB</div>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis">
+    <article class="kpi">
+      <span>累计成交</span>
+      <strong id="kpiRevenue">--</strong>
+      <small>已支付订单金额</small>
+    </article>
+    <article class="kpi">
+      <span>订单总量</span>
+      <strong id="kpiOrders">--</strong>
+      <small>全量订单</small>
+    </article>
+    <article class="kpi">
+      <span>待处理工单</span>
+      <strong id="kpiTickets">--</strong>
+      <small>需要客服跟进</small>
+    </article>
+    <article class="kpi">
+      <span>低库存商品</span>
+      <strong id="kpiStock">--</strong>
+      <small>库存 ≤ 10</small>
+    </article>
+  </section>
+
+  <main class="workspace">
+    <aside class="queue-panel panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">QUEUE</span>
+          <h2>售后工单</h2>
+        </div>
+        <span id="queueCount" class="count-badge">0</span>
+      </div>
+      <div class="filters" id="ticketFilters">
+        <button data-filter="all" class="filter active">全部</button>
+        <button data-filter="pending" class="filter">待处理</button>
+        <button data-filter="completed" class="filter">已完成</button>
+      </div>
+      <div class="ticket-list" id="ticketList">
+        <div class="empty-state">正在加载工单...</div>
+      </div>
+    </aside>
+
+    <section class="conversation-panel panel">
+      <div class="ticket-header">
+        <div>
+          <span class="eyebrow">CASE DETAIL</span>
+          <h1 id="ticketTitle">请选择售后工单</h1>
+          <p id="ticketMeta">选择左侧工单开始处理</p>
+        </div>
+        <span id="ticketStatus" class="status-badge status-neutral">未选择</span>
+      </div>
+
+      <div class="order-context" id="orderContext">
+        <div>
+          <span>关联订单</span>
+          <strong id="orderNo">--</strong>
+        </div>
+        <div>
+          <span>订单状态</span>
+          <strong id="orderStatus">--</strong>
+        </div>
+        <div>
+          <span>订单金额</span>
+          <strong id="orderAmount">--</strong>
+        </div>
+      </div>
+
+      <div class="conversation" id="conversation">
+        <div class="empty-state tall">选择工单后，这里会展示顾客与客服的多轮会话。</div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-head">
+          <span>补充说明</span>
+          <span class="hint">会写入工单上下文，供 Agent 做多轮研判</span>
+        </div>
+        <textarea id="messageInput" placeholder="例如：商品破损，想申请退款"></textarea>
+        <div class="composer-actions">
+          <span class="request-hint" id="composerHint">Agent 将检索订单、物流和售后政策</span>
+          <button id="sendMessage" class="button button-secondary">发送并刷新</button>
+          <button id="runAgent" class="button button-primary">运行 Agent</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="insight-panel panel">
+      <div class="tabs" id="insightTabs">
+        <button class="tab active" data-tab="agent">Agent</button>
+        <button class="tab" data-tab="trail">Trace</button>
+        <button class="tab" data-tab="audit">审计</button>
+        <button class="tab" data-tab="eval">评测</button>
+      </div>
+
+      <section class="tab-view active" data-view="agent">
+        <div class="agent-hero">
+          <div class="agent-orb">AI</div>
+          <div>
+            <span class="eyebrow">AUTONOMOUS AGENT</span>
+            <h2>售后研判助手</h2>
+            <p>订单工具 · 政策 RAG · 证据校验 · 人工审批</p>
+          </div>
+        </div>
+
+        <div class="agent-placeholder" id="agentPlaceholder">
+          <div class="pulse-ring"></div>
+          <strong>等待运行</strong>
+          <span>点击“运行 Agent”生成带引用的售后建议</span>
+        </div>
+
+        <div class="agent-result hidden" id="agentResult">
+          <div class="result-top">
+            <div>
+              <span class="eyebrow">RECOMMENDATION</span>
+              <h3 id="resultAction">--</h3>
+            </div>
+            <span id="approvalBadge" class="status-badge status-warning">待判断</span>
+          </div>
+          <p class="result-summary" id="resultSummary">--</p>
+          <div class="confidence-row">
+            <span>置信度</span>
+            <div class="confidence-track"><i id="confidenceBar"></i></div>
+            <strong id="confidenceValue">--</strong>
+          </div>
+          <div class="result-meta">
+            <span>意图 <strong id="resultIntent">--</strong></span>
+            <span>Request ID <code id="resultRequestId">--</code></span>
+          </div>
+          <div class="result-section">
+            <h4>证据链</h4>
+            <div class="evidence-list" id="evidenceList"></div>
+          </div>
+          <div class="result-section" id="missingSection">
+            <h4>缺失信息</h4>
+            <ul class="missing-list" id="missingList"></ul>
+          </div>
+          <div class="approval-actions" id="approvalActions"></div>
+        </div>
+      </section>
+
+      <section class="tab-view" data-view="trail">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">EXECUTION TRACE</span>
+            <h2>Agent 运行轨迹</h2>
+          </div>
+          <span class="live-dot">LIVE</span>
+        </div>
+        <div id="traceSummary" class="trace-summary">还没有运行记录</div>
+        <div class="trace-list" id="traceList"></div>
+      </section>
+
+      <section class="tab-view" data-view="audit">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">AUDIT LOG</span>
+            <h2>最近操作</h2>
+          </div>
+        </div>
+        <div id="auditList" class="audit-list"></div>
+      </section>
+
+      <section class="tab-view" data-view="eval">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">EVALUATION</span>
+            <h2>30 条案例评测</h2>
+          </div>
+          <span class="status-badge status-success">Reproducible</span>
+        </div>
+        <div id="evalMetrics" class="eval-grid">
+          <div class="empty-state">正在加载评测...</div>
+        </div>
+        <div class="eval-note">
+          对比纯规则基线、RAG 和完整 Agent。指标来自本地可复现评测脚本。
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/static/workbench.js"></script>
+</body>
+</html>

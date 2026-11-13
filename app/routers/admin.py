@@ -1,5 +1,7 @@
 """管理后台路由（需管理员）：商品管理 / 订单处理 / 数据统计。"""
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -11,6 +13,14 @@ from ..schemas import ProductCreateRequest, ProductUpdateRequest, StatusUpdateRe
 from .deps import get_current_admin
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
+EVAL_REPORT = Path(__file__).resolve().parents[2] / "eval" / "reports" / "agent_latest.json"
+
+
+@router.get("/evaluation/latest", summary="最新 Agent 评测")
+def latest_evaluation(admin: dict = Depends(get_current_admin)):
+    if not EVAL_REPORT.exists():
+        raise HTTPException(404, "暂无评测报告")
+    return json.loads(EVAL_REPORT.read_text(encoding="utf-8"))
 
 
 @router.get("/audit-logs", summary="审计日志")
