@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from ..audit import record_audit
-from ..config import OPENAI_API_KEY, OPENAI_MODEL
+from ..config import MODEL_COST_PER_1K_TOKENS, OPENAI_API_KEY, OPENAI_MODEL
 from ..db import AgentRun, AfterSalesTicket, SessionLocal
 from ..observability import get_request_id, new_request_id
 from .graph import build_graph
@@ -75,6 +75,7 @@ def execute_agent_run(
         run.output = result.get("output", {})
         run.steps = result.get("steps", [])
         run.tokens_used = result.get("tokens_used", 0)
+        run.estimated_cost_usd = round(run.tokens_used / 1000 * MODEL_COST_PER_1K_TOKENS, 6)
         run.stop_reason = result.get("stop_reason")
     except Exception as exc:  # pragma: no cover - 真实运行错误保存到记录
         run.status = "failed"
@@ -113,6 +114,7 @@ def serialize_run(run: AgentRun) -> dict:
         "prompt_version": run.prompt_version,
         "tokens_used": run.tokens_used,
         "latency_ms": run.latency_ms,
+        "estimated_cost_usd": run.estimated_cost_usd,
         "output": run.output,
         "steps": run.steps,
         "stop_reason": run.stop_reason,
@@ -182,6 +184,7 @@ def stream_agent_run_events(
         run.output = final_state.get("output", {}) if final_state else {}
         run.steps = final_state.get("steps", []) if final_state else []
         run.tokens_used = final_state.get("tokens_used", 0) if final_state else 0
+        run.estimated_cost_usd = round(run.tokens_used / 1000 * MODEL_COST_PER_1K_TOKENS, 6)
         run.stop_reason = final_state.get("stop_reason") if final_state else "empty_result"
     except GeneratorExit:
         run.status = "cancelled"

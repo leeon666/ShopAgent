@@ -226,6 +226,7 @@ class AgentRun(Base):
     prompt_version: Mapped[str] = mapped_column(String(64), default="shopagent-agent-v1")
     tokens_used: Mapped[int] = mapped_column(Integer, default=0)
     latency_ms: Mapped[float] = mapped_column(Float, default=0)
+    estimated_cost_usd: Mapped[float] = mapped_column(Float, default=0)
     output: Mapped[dict] = mapped_column(JSON, default=dict)
     steps: Mapped[list] = mapped_column(JSON, default=list)
     stop_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)

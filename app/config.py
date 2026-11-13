@@ -18,6 +18,7 @@ REDIS_URL = os.environ.get("REDIS_URL")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+MODEL_COST_PER_1K_TOKENS = float(os.environ.get("MODEL_COST_PER_1K_TOKENS", "0"))
 
 SECRET_KEY = os.environ.get("SHOP_SECRET_KEY", "ecommerce-shop-dev-secret-key-change-me")
 TOKEN_TTL_HOURS = int(os.environ.get("SHOP_TOKEN_TTL_HOURS", "24"))

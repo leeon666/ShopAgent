@@ -131,4 +131,5 @@ Agent 负责理解顾客售后诉求、检索售后政策、调用订单和退�
 - 已增加 SSE 节点流、Agent 演示页和 GitHub Actions 测试工作流。
 - 已增加 PostgreSQL pgvector 向量表、HNSW 索引和向量检索代码，PostgreSQL DDL 离线验证通过。
 - 已增加多轮售后上下文与超长历史压缩，Agent 输出会标记是否发生压缩。
+- 评测已补齐工具调用正确率和可配置 Token 成本估算。
 - 下一步：补真实模型、Docker/Redis/Celery/pgvector 实机验证和 2 分钟演示。

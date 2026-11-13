@@ -33,6 +33,7 @@
 - [ ] 接入真实 OpenAI 兼容模型并验证
 - [x] 增加 X-Request-ID 全链路与 Agent 节点耗时/Trace 字段
 - [x] 建立 30 条售后案例并完成纯基线/RAG/完整 Agent 三方案评测
+- [x] 增加工具调用正确率、Token 与可配置成本估算
 - [x] 增加 SSE 节点流与 Agent 演示页
 - [x] 增加 Dockerfile、API/worker/PostgreSQL/Redis Compose 配置并通过 `docker compose config` 校验
 - [x] 补充项目 README、运行方式和架构说明

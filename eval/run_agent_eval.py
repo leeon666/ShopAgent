@@ -17,6 +17,7 @@ os.environ.setdefault("SHOP_DB_PATH", os.path.join(tempfile.mkdtemp(), "agent_ev
 
 from app import rag  # noqa: E402
 from app.agent.graph import HIGH_RISK_INTENTS, POLICY_INTENTS, _detect_intent, build_graph  # noqa: E402
+from app.config import MODEL_COST_PER_1K_TOKENS  # noqa: E402
 from app.db import Category, Order, OrderItem, Product, SessionLocal, User, init_db  # noqa: E402
 from app.security import hash_password  # noqa: E402
 
@@ -128,6 +129,14 @@ def _full_run(graph, user_id: int, order_id: int, message: str) -> dict:
     }
 
 
+def _expected_tools(intent: str) -> set[str]:
+    if intent == "logistics":
+        return {"get_order", "get_logistics"}
+    if intent in POLICY_INTENTS:
+        return {"get_order", "check_return_policy"}
+    return {"get_order"}
+
+
 def main() -> None:
     init_db()
     user_id, order_id = _seed()
@@ -158,6 +167,7 @@ def main() -> None:
         policy_covered = 0
         tool_total = 0
         tool_ok = 0
+        tool_selection_correct = 0
         latencies = []
         tokens = []
         for case, (output, latency, token_count) in zip(cases, rows):
@@ -171,6 +181,8 @@ def main() -> None:
                 for tool_result in output.get("tool_results", {}).values():
                     tool_total += 1
                     tool_ok += bool(tool_result.get("ok"))
+                actual_tools = set(output.get("tool_results", {}).keys())
+                tool_selection_correct += actual_tools == _expected_tools(case["expected_intent"])
             latencies.append(latency)
             tokens.append(token_count)
         n = len(cases)
@@ -179,10 +191,12 @@ def main() -> None:
             "approval_accuracy": round(approval_correct / n, 4),
             "policy_citation_coverage": round(policy_covered / policy_cases, 4) if policy_cases else 1.0,
             "unsupported_policy_rate": round((policy_cases - policy_covered) / policy_cases, 4) if policy_cases else 0.0,
+            "tool_call_accuracy": round(tool_selection_correct / n, 4) if mode == "full" else None,
             "tool_success_rate": round(tool_ok / tool_total, 4) if tool_total else None,
             "p50_latency_ms": round(statistics.median(latencies), 2),
             "p95_latency_ms": round(_percentile(latencies, 0.95), 2),
             "avg_tokens": round(sum(tokens) / n, 2),
+            "avg_cost_usd": round(sum(tokens) / n / 1000 * MODEL_COST_PER_1K_TOKENS, 6),
         }
 
     report_dir = Path(__file__).parent / "reports"
@@ -202,10 +216,12 @@ def main() -> None:
         ("人工审批准确率", "approval_accuracy"),
         ("政策引用覆盖率", "policy_citation_coverage"),
         ("无证据政策结论率", "unsupported_policy_rate"),
+        ("工具调用正确率", "tool_call_accuracy"),
         ("工具成功率", "tool_success_rate"),
         ("P50 延迟(ms)", "p50_latency_ms"),
         ("P95 延迟(ms)", "p95_latency_ms"),
         ("平均 Token", "avg_tokens"),
+        ("平均成本(USD)", "avg_cost_usd"),
     ]
     for label, key in metric_names:
         values = [report["modes"][mode][key] for mode in ("pure", "rag", "full")]
