@@ -58,10 +58,15 @@ def test_agent_run_with_rag_and_approval():
     data = run.json()
     assert data["status"] == "completed"
     assert data["stop_reason"] == "human_approval_required"
+    assert run.headers["X-Request-ID"] == data["request_id"]
+    assert data["model_name"] == "rules-fallback"
+    assert data["prompt_version"] == "shopagent-agent-v1"
+    assert data["latency_ms"] > 0
     assert data["output"]["intent"] == "damage"
     assert data["output"]["evidence"]
     assert data["output"]["requires_human_approval"] is True
     assert data["steps"]
+    assert data["steps"][0]["duration_ms"] >= 0
 
     fetched = client.get(f"/api/agent-runs/{data['id']}", headers=headers)
     assert fetched.status_code == 200

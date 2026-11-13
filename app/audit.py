@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .db import AuditLog, IdempotencyRecord
+from .observability import get_request_id
 
 
 def record_audit(
@@ -17,6 +18,7 @@ def record_audit(
         AuditLog(
             actor_id=actor.get("id") if actor else None,
             actor_role=actor.get("role", "system") if actor else "system",
+            request_id=get_request_id() or None,
             action=action,
             target_type=target_type,
             target_id=target_id,

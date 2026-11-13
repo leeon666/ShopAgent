@@ -1,10 +1,13 @@
 """AgentRun 执行与序列化。"""
+import time
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
 from ..audit import record_audit
+from ..config import OPENAI_API_KEY, OPENAI_MODEL
 from ..db import AgentRun, AfterSalesTicket
+from ..observability import get_request_id, new_request_id
 from .graph import build_graph
 
 
@@ -15,11 +18,16 @@ def execute_agent_run(
     message: str | None = None,
 ) -> AgentRun:
     input_message = message or ticket.reason or "请帮我处理售后"
+    request_id = get_request_id() or new_request_id()
+    started = time.perf_counter()
     run = AgentRun(
         ticket_id=ticket.id,
         user_id=user["id"],
         status="running",
         input_message=input_message,
+        request_id=request_id,
+        model_name=OPENAI_MODEL if OPENAI_API_KEY else "rules-fallback",
+        prompt_version="shopagent-agent-v1",
     )
     session.add(run)
     session.commit()
@@ -29,6 +37,7 @@ def execute_agent_run(
             {
                 "ticket_id": ticket.id,
                 "user_id": user["id"],
+                "request_id": request_id,
                 "message": input_message,
                 "order_id": ticket.order_id,
                 "tool_results": {},
@@ -43,11 +52,13 @@ def execute_agent_run(
         run.status = "completed"
         run.output = result.get("output", {})
         run.steps = result.get("steps", [])
+        run.tokens_used = result.get("tokens_used", 0)
         run.stop_reason = result.get("stop_reason")
     except Exception as exc:  # pragma: no cover - 真实运行错误保存到记录
         run.status = "failed"
         run.error = str(exc)
         run.stop_reason = "error"
+    run.latency_ms = round((time.perf_counter() - started) * 1000, 2)
     run.finished_at = datetime.now()
     record_audit(
         session,
@@ -55,7 +66,13 @@ def execute_agent_run(
         "agent.run",
         "agent_run",
         run.id,
-        {"ticket_id": ticket.id, "status": run.status, "stop_reason": run.stop_reason},
+        {
+            "ticket_id": ticket.id,
+            "status": run.status,
+            "stop_reason": run.stop_reason,
+            "model_name": run.model_name,
+            "latency_ms": run.latency_ms,
+        },
     )
     session.commit()
     session.refresh(run)
@@ -69,6 +86,11 @@ def serialize_run(run: AgentRun) -> dict:
         "user_id": run.user_id,
         "status": run.status,
         "input_message": run.input_message,
+        "request_id": run.request_id,
+        "model_name": run.model_name,
+        "prompt_version": run.prompt_version,
+        "tokens_used": run.tokens_used,
+        "latency_ms": run.latency_ms,
         "output": run.output,
         "steps": run.steps,
         "stop_reason": run.stop_reason,

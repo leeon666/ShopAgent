@@ -1,6 +1,7 @@
 """LangGraph 售后 Agent 工作流。"""
 from __future__ import annotations
 
+import time
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -15,6 +16,7 @@ HIGH_RISK_INTENTS = {"refund", "return", "exchange", "damage"}
 class AgentState(TypedDict, total=False):
     ticket_id: int
     user_id: int
+    request_id: str
     message: str
     intent: str
     order_id: int
@@ -26,10 +28,21 @@ class AgentState(TypedDict, total=False):
     tokens_used: int
     output: dict
     stop_reason: str | None
+    _last_step_ts: float
 
 
 def _record_step(state: AgentState, name: str, detail: dict | None = None) -> AgentState:
-    state.setdefault("steps", []).append({"node": name, "detail": detail or {}})
+    now = time.perf_counter()
+    last = state.get("_last_step_ts", now)
+    state["_last_step_ts"] = now
+    state.setdefault("steps", []).append(
+        {
+            "node": name,
+            "duration_ms": round((now - last) * 1000, 2),
+            "request_id": state.get("request_id"),
+            "detail": detail or {},
+        }
+    )
     state["step_count"] = state.get("step_count", 0) + 1
     return state
 
@@ -40,16 +53,17 @@ def _detect_intent(message: str) -> str:
         return "logistics"
     if any(k in text for k in ("换货", "换成", "置换")):
         return "exchange"
-    if any(k in text for k in ("破损", "损坏", "少件", "有问题")):
+    if any(k in text for k in ("破损", "损坏", "少件", "少了一", "裂痕", "裂开", "碎", "瑕疵", "有问题")):
         return "damage"
-    if any(k in text for k in ("退货", "退掉")):
-        return "return"
     if any(k in text for k in ("退款", "退钱", "退费")):
         return "refund"
+    if any(k in text for k in ("退货", "退掉", "可以退", "能退", "退吗")):
+        return "return"
     return "other"
 
 
 def parse_intent(state: AgentState) -> AgentState:
+    state["_last_step_ts"] = time.perf_counter()
     state["intent"] = _detect_intent(state.get("message", ""))
     state["token_budget"] = state.get("token_budget", 2000)
     state["max_steps"] = state.get("max_steps", 8)
@@ -163,7 +177,12 @@ def generate(state: AgentState) -> AgentState:
         f"顾客诉求：{state.get('message')}\n意图：{state.get('intent')}\n订单：{order}\n政策：{policies}",
     )
 
-    requires_approval = state.get("intent") in HIGH_RISK_INTENTS or confidence < 0.6 or not policies
+    policy_required = state.get("intent") in POLICY_INTENTS
+    requires_approval = (
+        state.get("intent") in HIGH_RISK_INTENTS
+        or (policy_required and not policies)
+        or confidence < 0.6
+    )
     state["output"] = {
         "intent": state.get("intent"),
         "order_id": state.get("order_id"),

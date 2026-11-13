@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db
+from .observability import RequestIdMiddleware
 from .routers import admin, aftersales, agent, auth, cart, knowledge, orders, payment, products
 from .seed import seed_if_empty
 
@@ -17,6 +18,7 @@ app = FastAPI(
     description="用 Codex / Claude Code 开发的电商应用（商品/购物车/订单/支付/管理后台）",
     version="1.0.0",
 )
+app.add_middleware(RequestIdMiddleware)
 
 # 初始化数据库 + 演示数据
 db.init_db()

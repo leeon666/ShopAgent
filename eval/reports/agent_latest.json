@@ -1,0 +1,35 @@
+{
+  "case_count": 30,
+  "modes": {
+    "pure": {
+      "intent_accuracy": 1.0,
+      "approval_accuracy": 1.0,
+      "policy_citation_coverage": 0.0,
+      "unsupported_policy_rate": 1.0,
+      "tool_success_rate": null,
+      "p50_latency_ms": 0.01,
+      "p95_latency_ms": 0.01,
+      "avg_tokens": 0.0
+    },
+    "rag": {
+      "intent_accuracy": 1.0,
+      "approval_accuracy": 1.0,
+      "policy_citation_coverage": 1.0,
+      "unsupported_policy_rate": 0.0,
+      "tool_success_rate": null,
+      "p50_latency_ms": 1.1,
+      "p95_latency_ms": 1.37,
+      "avg_tokens": 0.0
+    },
+    "full": {
+      "intent_accuracy": 1.0,
+      "approval_accuracy": 1.0,
+      "policy_citation_coverage": 1.0,
+      "unsupported_policy_rate": 0.0,
+      "tool_success_rate": 1.0,
+      "p50_latency_ms": 5.25,
+      "p95_latency_ms": 6.05,
+      "avg_tokens": 128.0
+    }
+  }
+}
