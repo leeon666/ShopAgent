@@ -10,6 +10,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     create_engine,
+    inspect,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 from pgvector.sqlalchemy import Vector
@@ -242,12 +243,44 @@ if DATABASE_URL.startswith("sqlite"):
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
+REQUIRED_COLUMNS = {
+    "audit_logs": {"request_id"},
+    "agent_runs": {
+        "request_id",
+        "model_name",
+        "prompt_version",
+        "tokens_used",
+        "latency_ms",
+        "estimated_cost_usd",
+    },
+}
+
+
+def schema_errors(target_engine=engine) -> list[str]:
+    inspector = inspect(target_engine)
+    tables = set(inspector.get_table_names())
+    errors = []
+    for table, required in REQUIRED_COLUMNS.items():
+        if table not in tables:
+            continue
+        existing = {column["name"] for column in inspector.get_columns(table)}
+        missing = sorted(required - existing)
+        if missing:
+            errors.append(f"{table} 缺少字段: {', '.join(missing)}")
+    return errors
+
 
 def init_db() -> None:
     if DATABASE_URL.startswith(("postgresql", "postgres")):
         with engine.begin() as connection:
             connection.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
     Base.metadata.create_all(engine)
+    errors = schema_errors()
+    if errors:
+        raise RuntimeError(
+            "数据库结构已过期，请先备份数据库并执行 Alembic 迁移，"
+            "或删除开发数据库后重新初始化。问题：" + "; ".join(errors)
+        )
 
 
 def get_db():

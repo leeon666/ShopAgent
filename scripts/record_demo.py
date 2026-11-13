@@ -59,7 +59,7 @@ async def run(full: bool):
         await overlay(page, "结构化结果：诉求、证据、缺失信息、建议动作、置信度、人工审批")
         await page.locator("#logs").scroll_into_view_if_needed()
         await page.wait_for_timeout(30000 if full else 1500)
-        await overlay(page, "30 条案例评测｜工具正确率 1.0｜政策引用覆盖 1.0｜pytest 9 passed")
+        await overlay(page, "30 条案例评测｜工具正确率 1.0｜政策引用覆盖 1.0｜pytest 10 passed")
         await page.wait_for_timeout(30000 if full else 1000)
         await context.close()
         await browser.close()
