@@ -1,71 +1,171 @@
-# 电商商城系统（后端 API + 管理后台）
+# ShopAgent
 
-用 **Codex / Claude Code** 开发的 B2C 电商应用，覆盖「商品 → 购物车 → 订单 → 支付 → 管理后台」完整链路。
-后端 FastAPI + SQLite，零 ORM、JWT 自实现（HMAC-SHA256），支付为模拟沙箱（可替换微信/支付宝回调）。
+ShopAgent 是一个“商城后端 + 智能售后 Agent”的综合项目。它基于 `wind5516/ecommerce-shop` 改造，目标不是只做一个聊天 Demo，而是让 Agent 在真实订单、物流、售后政策和人工审批流程中工作。
 
-## 功能
+## 当前能力
 
-- 🛍️ 商品：分类、搜索、分页、详情、上架/下架
-- 🛒 购物车：加购、改数量、删除、清空、库存校验
-- 📦 订单：购物车下单、库存扣减、订单状态机（待付款→已付款→已发货→已完成/已取消）、取消回补库存
-- 💳 支付：模拟第三方支付 + 回调，订单超时/状态变更可扩展
-- 🛠️ 管理后台：商品 CRUD、库存调整、订单发货/完成、经营统计（销售额/趋势/TOP 商品/低库存预警）
-- 📚 自动接口文档（Swagger）
+- FastAPI 商城后端
+- SQLAlchemy 数据模型
+- Alembic 数据库迁移
+- 商品、购物车、订单、支付、售后工单
+- 审计日志与订单幂等键
+- Redis 缓存与登录限流
+- Celery 订单超时任务
+- 售后政策知识库与带引用检索
+- LangGraph 售后 Agent
+- 订单、物流、售后政策三个只读工具
+- 结构化 Agent 输出与人工审批标记
+- X-Request-ID 与 Agent 节点耗时记录
+- 30 条案例的三方案评测
 
-## 快速开始
+## 架构
+
+```text
+顾客 / 管理员
+     |
+     v
+FastAPI API
+  |-- 商城业务：商品 / 购物车 / 订单 / 支付 / 售后
+  |-- 审计与幂等
+  |-- X-Request-ID
+  |
+  +--> PostgreSQL
+  +--> Redis
+  +--> Celery Worker
+
+售后工单
+  |
+  v
+LangGraph Agent
+  parse_intent
+      -> get_order
+      -> get_logistics / check_return_policy
+      -> generate
+      -> verify
+      -> human approval when needed
+  |
+  +--> AgentRun / steps / tool results / citations
+```
+
+## 技术栈
+
+- Python 3.12
+- FastAPI
+- SQLAlchemy
+- Alembic
+- PostgreSQL
+- Redis
+- Celery
+- LangGraph
+- pytest
+
+## 本地运行（SQLite，快速演示）
+
+```powershell
+uv venv .venv
+uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
+.venv/Scripts/python.exe run.py
+```
+
+访问：
+
+- 商城前台：http://127.0.0.1:8000/static/index.html
+- 管理后台：http://127.0.0.1:8000/static/admin.html
+- Swagger：http://127.0.0.1:8000/docs
+
+演示账号：
+
+- 管理员：`admin / admin123`
+- 用户：`demo / 123456`
+
+## Docker Compose
 
 ```bash
-pip install -r requirements.txt
-python run.py            # 默认 127.0.0.1:8000
-# python run.py --port 9000
+docker compose up --build
 ```
 
-| 入口 | 地址 |
-|---|---|
-| 商城前台 | http://127.0.0.1:8000/static/index.html |
-| 管理后台 | http://127.0.0.1:8000/static/admin.html |
-| Swagger 接口文档 | http://127.0.0.1:8000/docs |
+Compose 会启动 PostgreSQL、Redis、API 和 Celery worker，并在 API 启动前运行 `alembic upgrade head`。
 
-## 演示账号
+当前开发机受 WSL/Docker Desktop 限制，Compose 还没有完成实机启动验证。
 
-| 角色 | 账号 | 密码 |
-|---|---|---|
-| 管理员 | admin | admin123 |
-| 测试用户 | demo | 123456 |
+## Agent 使用
 
-首次启动自动写入演示数据：5 个分类、11 个商品。
+1. 登录用户并创建/支付一笔订单。
+2. 创建售后工单。
+3. 调用：
 
-## 目录结构
-
-```
-ecommerce-shop/
-├── app/
-│   ├── main.py          # FastAPI 入口
-│   ├── db.py            # SQLite 连接与建表
-│   ├── security.py      # 自写 HMAC JWT + PBKDF2 密码哈希
-│   ├── schemas.py       # 请求/响应模型
-│   ├── seed.py          # 演示数据
-│   └── routers/         # auth / products / cart / orders / payment / admin
-├── static/              # 商城前台 + 管理后台（原生 HTML/JS）
-├── data/                # SQLite 数据文件（自动生成）
-├── run.py               # 启动入口
-└── requirements.txt
+```http
+POST /api/agent-runs/tickets/{ticket_id}
+{
+  "message": "商品破损，想申请退款"
+}
 ```
 
-## 核心 API
+4. 查询运行记录：
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| POST | /api/auth/register | 注册 |
-| POST | /api/auth/login | 登录（返回 JWT） |
-| GET | /api/products | 商品列表（category_id / q / page / size） |
-| POST | /api/cart | 加入购物车（需登录） |
-| POST | /api/orders | 从购物车下单（需登录） |
-| POST | /api/payment/mock | 模拟支付（需登录） |
-| POST | /api/admin/products | 新增商品（需管理员） |
-| GET | /api/admin/stats | 经营统计（需管理员） |
+```http
+GET /api/agent-runs/{run_id}
+```
 
-## 说明
+输出包含：
 
-- 生产环境请替换 `SECRET_KEY`（环境变量 `SHOP_SECRET_KEY`）与支付沙箱为真实微信/支付宝回调验签。
-- 数据库为 SQLite，删除 `data/shop.db` 后重启可重置数据。
+- intent
+- summary
+- evidence
+- missing_information
+- recommended_action
+- requires_human_approval
+- confidence
+- steps 与 tool_results
+
+高风险退款、退货、换货和破损诉求只生成处理建议，不直接执行退款。
+
+## 评测
+
+检索评测：
+
+```powershell
+.venv/Scripts/python.exe eval/run_retrieval_eval.py
+```
+
+Agent 三方案评测：
+
+```powershell
+.venv/Scripts/python.exe eval/run_agent_eval.py
+```
+
+报告位于：
+
+- `eval/reports/retrieval_latest.md`
+- `eval/reports/agent_latest.md`
+- `eval/reports/agent_latest.json`
+
+当前 30 条案例结果：
+
+- 意图准确率：1.0
+- 人工审批准确率：1.0
+- 政策引用覆盖率：完整 Agent 1.0
+- 无证据政策结论率：完整 Agent 0.0
+- 工具成功率：1.0
+
+这些是离线规则/确定性检索的可复现结果，不代表真实生产模型效果。
+
+## 测试
+
+```powershell
+.venv/Scripts/python.exe -m pytest -q
+```
+
+当前共 7 条测试，覆盖售后闭环、越权、幂等、审计、订单超时、知识检索和 Agent 审批。
+
+## 已知限制
+
+- PostgreSQL + pgvector 尚未完成真实容器验证。
+- Redis/Celery 尚未完成真实 worker 验证。
+- 真实 OpenAI 兼容模型接口需要配置 `OPENAI_API_KEY` 后再验证。
+- 当前知识检索有 SQLite/JSON 离线实现，后续切换 pgvector。
+- 前端暂未提供完整 Agent 对话界面。
+
+## 来源说明
+
+底座来自开源项目 `wind5516/ecommerce-shop`，当前仓库已完成大量结构改造和功能新增。使用和发布前请自行核对原项目许可证。

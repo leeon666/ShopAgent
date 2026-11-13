@@ -127,4 +127,5 @@ Agent 负责理解顾客售后诉求、检索售后政策、调用订单和退�
 - M3 已完成离线版本：知识库、检索引用和 Hit@K/MRR 评测已落地，待切换 pgvector。
 - M4 核心闭环完成：LangGraph Agent、3 个只读工具、结构化输出、停止条件和人工审批标记已落地。
 - M5 核心观测与评测完成：X-Request-ID、节点耗时、模型/Prompt/Token/延迟记录、30 条案例和三方案评测已落地。
-- 下一步：补真实模型、pgvector、Docker/Redis/Celery 实机验证、SSE 和交付文档。
+- M6 交付骨架完成：Dockerfile、API/worker/PostgreSQL/Redis Compose、项目 README 和架构说明已落地。
+- 下一步：补真实模型、pgvector、Docker/Redis/Celery 实机验证、SSE、CI 和 2 分钟演示。

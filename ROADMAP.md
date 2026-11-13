@@ -32,7 +32,9 @@
 - [x] 增加 X-Request-ID 全链路与 Agent 节点耗时/Trace 字段
 - [x] 建立 30 条售后案例并完成纯基线/RAG/完整 Agent 三方案评测
 - [ ] 增加流式响应与前端演示
-- [ ] 补充 Docker、CI 和演示文档
+- [x] 增加 Dockerfile、API/worker/PostgreSQL/Redis Compose 配置并通过 `docker compose config` 校验
+- [x] 补充项目 README、运行方式和架构说明
+- [ ] 完成 Docker 实机启动、CI 与演示材料
 
 ## 运行
 
