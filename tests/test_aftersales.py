@@ -1,8 +1,4 @@
-import os
-import tempfile
 import uuid
-
-os.environ["SHOP_DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 
 from fastapi.testclient import TestClient
 

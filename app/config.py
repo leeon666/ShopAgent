@@ -3,6 +3,10 @@ import os
 
 
 def _default_database_url() -> str:
+    override = os.environ.get("SHOP_DB_PATH")
+    if override:
+        normalized = override.replace("\\", "/")
+        return f"sqlite:///{normalized}"
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, "data")
     os.makedirs(data_dir, exist_ok=True)

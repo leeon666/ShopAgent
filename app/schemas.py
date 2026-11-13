@@ -67,3 +67,9 @@ class AfterSalesReviewRequest(BaseModel):
     status: str = Field(pattern=r"^(reviewing|awaiting_user|rejected|completed)$")
     resolution: str = Field(default="", max_length=1000)
     refund_amount: Optional[float] = Field(default=None, ge=0)
+
+
+class KnowledgeIngestRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=256)
+    content: str = Field(min_length=1)
+    source: str = Field(default="", max_length=256)

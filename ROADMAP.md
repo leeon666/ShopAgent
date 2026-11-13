@@ -22,7 +22,9 @@
 - [x] 增加审计日志与幂等键
 - [ ] 使用 Docker 真 Redis + Celery worker 验证异步链路
 - [ ] 完善 RBAC 角色与权限
-- [ ] 构建售后政策 RAG 知识库
+- [x] 构建售后政策知识库与检索，返回引用来源
+- [x] 增加检索评测脚本与案例集，计算 Hit@1 / Hit@K / MRR
+- [ ] 将向量存储切换到 PostgreSQL + pgvector
 - [ ] 实现 LangGraph 售后 Agent 与业务工具调用
 - [ ] 增加人工审批、流式响应、评测与 Trace
 - [ ] 补充 Docker、CI 和演示文档
