@@ -12,6 +12,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
+from pgvector.sqlalchemy import Vector
 
 from .config import DATABASE_URL
 
@@ -204,6 +205,14 @@ class KnowledgeChunk(Base):
     document: Mapped["KnowledgeDocument"] = relationship(back_populates="chunks")
 
 
+if DATABASE_URL.startswith(("postgresql", "postgres")):
+    class KnowledgeChunkVector(Base):
+        __tablename__ = "knowledge_chunk_vectors"
+
+        chunk_id: Mapped[int] = mapped_column(ForeignKey("knowledge_chunks.id"), primary_key=True)
+        embedding: Mapped[list[float]] = mapped_column(Vector(128))
+
+
 class AgentRun(Base):
     __tablename__ = "agent_runs"
 
@@ -234,6 +243,9 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 
 def init_db() -> None:
+    if DATABASE_URL.startswith(("postgresql", "postgres")):
+        with engine.begin() as connection:
+            connection.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
     Base.metadata.create_all(engine)
 
 

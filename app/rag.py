@@ -9,7 +9,11 @@ from collections import Counter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .config import DATABASE_URL
 from .db import KnowledgeChunk, KnowledgeDocument
+
+if DATABASE_URL.startswith(("postgresql", "postgres")):
+    from .db import KnowledgeChunkVector
 
 EMBED_DIM = 128
 CHUNK_SIZE = 240
@@ -74,16 +78,21 @@ def ingest_document(
     document = KnowledgeDocument(title=title, content=content, source=source, status="active")
     session.add(document)
     session.flush()
+    chunks: list[KnowledgeChunk] = []
     for position, chunk in enumerate(_split_text(content)):
-        session.add(
-            KnowledgeChunk(
-                document_id=document.id,
-                position=position,
-                content=chunk,
-                meta={"source": source, "title": title},
-                embedding=embed(chunk),
-            )
+        row = KnowledgeChunk(
+            document_id=document.id,
+            position=position,
+            content=chunk,
+            meta={"source": source, "title": title},
+            embedding=embed(chunk),
         )
+        session.add(row)
+        chunks.append(row)
+    session.flush()
+    if DATABASE_URL.startswith(("postgresql", "postgres")):
+        for row in chunks:
+            session.add(KnowledgeChunkVector(chunk_id=row.id, embedding=row.embedding))
     session.commit()
     session.refresh(document)
     return document
@@ -94,12 +103,35 @@ def search(
     query: str,
     top_k: int = 5,
 ) -> list[dict]:
+    query_vec = embed(query)
+    if DATABASE_URL.startswith(("postgresql", "postgres")):
+        distance = KnowledgeChunkVector.embedding.cosine_distance(query_vec).label("distance")
+        rows = session.execute(
+            select(KnowledgeChunk, KnowledgeDocument, distance)
+            .join(KnowledgeDocument, KnowledgeDocument.id == KnowledgeChunk.document_id)
+            .join(KnowledgeChunkVector, KnowledgeChunkVector.chunk_id == KnowledgeChunk.id)
+            .where(KnowledgeDocument.status == "active")
+            .order_by(distance)
+            .limit(top_k)
+        ).all()
+        return [
+            {
+                "chunk_id": chunk.id,
+                "document_id": document.id,
+                "title": document.title,
+                "source": document.source,
+                "position": chunk.position,
+                "score": round(1 - float(dist), 4),
+                "content": chunk.content,
+            }
+            for chunk, document, dist in rows
+        ]
+
     rows = session.execute(
         select(KnowledgeChunk, KnowledgeDocument)
         .join(KnowledgeDocument, KnowledgeDocument.id == KnowledgeChunk.document_id)
         .where(KnowledgeDocument.status == "active")
     ).all()
-    query_vec = embed(query)
     query_tokens = set(_tokens(query))
     scored: list[tuple[float, KnowledgeChunk, KnowledgeDocument]] = []
     for chunk, document in rows:

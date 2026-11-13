@@ -24,7 +24,8 @@
 - [ ] 完善 RBAC 角色与权限
 - [x] 构建售后政策知识库与检索，返回引用来源
 - [x] 增加检索评测脚本与案例集，计算 Hit@1 / Hit@K / MRR
-- [ ] 将向量存储切换到 PostgreSQL + pgvector
+- [x] 增加 PostgreSQL pgvector 向量表、HNSW 索引和向量检索路径
+- [ ] 使用真实 PostgreSQL 容器验证 pgvector 查询
 - [x] 实现 LangGraph 售后 Agent 与 3 个只读业务工具
 - [x] 增加结构化输出、停止条件与人工审批标记
 - [x] 增加 AgentRun 运行记录与节点步骤
