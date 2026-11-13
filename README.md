@@ -74,7 +74,8 @@ uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
 
 - 商城前台：http://127.0.0.1:8000/static/index.html
 - 管理后台：http://127.0.0.1:8000/static/admin.html
-- Agent 演示页：http://127.0.0.1:8000/static/agent.html
+- 售后运营工作台：http://127.0.0.1:8000/
+- 轻量 Agent 演示页：http://127.0.0.1:8000/static/agent.html
 - Swagger：http://127.0.0.1:8000/docs
 
 演示账号：
