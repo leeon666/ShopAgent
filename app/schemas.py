@@ -73,3 +73,7 @@ class KnowledgeIngestRequest(BaseModel):
     title: str = Field(min_length=1, max_length=256)
     content: str = Field(min_length=1)
     source: str = Field(default="", max_length=256)
+
+
+class AgentRunRequest(BaseModel):
+    message: Optional[str] = Field(default=None, max_length=2000)

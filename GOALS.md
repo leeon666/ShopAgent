@@ -121,5 +121,9 @@ Agent 负责理解顾客售后诉求、检索售后政策、调用订单和退�
 
 ## 当前状态
 
-- M0 已完成：底座跑通、dev 分支建立、售后工单模块与基础测试已提交。
-- 下一步进入 M1：数据层升级到 SQLAlchemy + PostgreSQL + Alembic。
+- M0 已完成：底座跑通、dev 分支建立。
+- M1 代码主体完成：SQLAlchemy + Alembic 已落地，PostgreSQL 方言验证通过，待真实容器验证。
+- M2 代码主体完成：审计、幂等、Redis 缓存/限流和 Celery 订单超时任务已落地，待真 Redis/worker 验证。
+- M3 已完成离线版本：知识库、检索引用和 Hit@K/MRR 评测已落地，待切换 pgvector。
+- M4 核心闭环完成：LangGraph Agent、3 个只读工具、结构化输出、停止条件和人工审批标记已落地。
+- 下一步：提交 M4，然后补真实模型、pgvector、SSE/Trace 和 30+ 案例评测。

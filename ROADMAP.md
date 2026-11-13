@@ -25,8 +25,11 @@
 - [x] 构建售后政策知识库与检索，返回引用来源
 - [x] 增加检索评测脚本与案例集，计算 Hit@1 / Hit@K / MRR
 - [ ] 将向量存储切换到 PostgreSQL + pgvector
-- [ ] 实现 LangGraph 售后 Agent 与业务工具调用
-- [ ] 增加人工审批、流式响应、评测与 Trace
+- [x] 实现 LangGraph 售后 Agent 与 3 个只读业务工具
+- [x] 增加结构化输出、停止条件与人工审批标记
+- [x] 增加 AgentRun 运行记录与节点步骤
+- [ ] 接入真实 OpenAI 兼容模型并验证
+- [ ] 增加流式响应、完整评测与 Trace
 - [ ] 补充 Docker、CI 和演示文档
 
 ## 运行

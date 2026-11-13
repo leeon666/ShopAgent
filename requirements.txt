@@ -5,3 +5,5 @@ psycopg[binary]
 alembic
 redis
 celery
+langgraph
+httpx
