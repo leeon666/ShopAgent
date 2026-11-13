@@ -20,6 +20,8 @@ ShopAgent 是一个“商城后端 + 智能售后 Agent”的综合项目。它�
 
 ## 架构
 
+详细设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
 ```text
 顾客 / 管理员
      |
@@ -176,7 +178,11 @@ Agent 三方案评测：
 - Redis/Celery 尚未完成真实 worker 验证。
 - 真实 OpenAI 兼容模型接口需要配置 `OPENAI_API_KEY` 后再验证。
 - 当前知识检索有 SQLite/JSON 离线实现，后续切换 pgvector。
-- 前端暂未提供完整 Agent 对话界面。
+- Agent 前端目前是演示页，尚未做成完整的生产级客服工作台。
+
+## 演示材料
+
+2 分钟录屏脚本见 [docs/DEMO.md](docs/DEMO.md)。
 
 ## 来源说明
 

@@ -36,7 +36,8 @@
 - [x] 增加 Dockerfile、API/worker/PostgreSQL/Redis Compose 配置并通过 `docker compose config` 校验
 - [x] 补充项目 README、运行方式和架构说明
 - [x] 增加 GitHub Actions 测试工作流
-- [ ] 完成 Docker 实机启动与 2 分钟演示材料
+- [x] 增加架构图和 2 分钟演示脚本
+- [ ] 完成 Docker 实机启动与实际录屏
 
 ## 运行
 
