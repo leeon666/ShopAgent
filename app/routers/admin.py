@@ -27,6 +27,7 @@ def audit_logs(
             "id": log.id,
             "actor_id": log.actor_id,
             "actor_role": log.actor_role,
+            "request_id": log.request_id,
             "action": log.action,
             "target_type": log.target_type,
             "target_id": log.target_id,

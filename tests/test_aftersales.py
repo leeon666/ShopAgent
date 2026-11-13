@@ -140,7 +140,11 @@ def test_expire_pending_order_restores_stock():
     assert client.post("/api/cart", json={"product_id": 1, "quantity": 1}, headers=headers).status_code == 200
     order = client.post("/api/orders", headers=headers).json()
 
-    result = expire_pending_order(order["id"])
+    result = expire_pending_order(order["id"], "task-request-123")
     assert result["cancelled"] is True
     assert client.get(f"/api/orders/{order['id']}", headers=headers).json()["status"] == "cancelled"
     assert client.get("/api/products/1").json()["stock"] == before
+    admin_headers = {"Authorization": f"Bearer {_admin_token()}"}
+    logs = client.get("/api/admin/audit-logs", headers=admin_headers).json()["items"]
+    expire_logs = [item for item in logs if item["action"] == "order.expire"]
+    assert any(item["request_id"] == "task-request-123" for item in expire_logs)

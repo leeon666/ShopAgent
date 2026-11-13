@@ -11,6 +11,7 @@ from .. import tasks
 from ..audit import get_idempotency, record_audit, save_idempotency
 from ..celery_app import celery_app
 from ..db import CartItem, Order, OrderItem, Product, get_db
+from ..observability import get_request_id
 from .deps import get_current_user
 
 router = APIRouter(prefix="/api/orders", tags=["订单"])
@@ -94,7 +95,7 @@ def create_order(
     record_audit(session, user, "order.create", "order", order.id, {"order_no": order.order_no})
     session.commit()
     if not celery_app.conf.task_always_eager:
-        tasks.expire_pending_order.apply_async(args=[order.id], countdown=1800)
+        tasks.expire_pending_order.apply_async(args=[order.id, get_request_id()], countdown=1800)
     return _order_detail(session, order.id)
 
 
