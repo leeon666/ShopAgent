@@ -1,9 +1,29 @@
-"""商品浏览路由"""
-from fastapi import APIRouter, HTTPException, Query
+"""商品浏览路由。"""
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
-from .. import db
+from ..db import Category, Product, get_db
 
 router = APIRouter(prefix="/api/products", tags=["商品"])
+
+
+def _product_dict(product: Product, category_name: str | None = None) -> dict:
+    data = {
+        "id": product.id,
+        "category_id": product.category_id,
+        "name": product.name,
+        "description": product.description,
+        "price": product.price,
+        "stock": product.stock,
+        "sales": product.sales,
+        "status": product.status,
+        "image": product.image,
+        "created_at": product.created_at,
+    }
+    if category_name is not None:
+        data["category_name"] = category_name
+    return data
 
 
 @router.get("", summary="商品列表（分类/搜索/分页）")
@@ -12,43 +32,42 @@ def list_products(
     q: str | None = None,
     page: int = Query(default=1, ge=1),
     size: int = Query(default=12, ge=1, le=100),
+    session: Session = Depends(get_db),
 ):
-    where = ["status='on'"]
-    params: list = []
+    filters = [Product.status == "on"]
     if category_id:
-        where.append("category_id=?")
-        params.append(category_id)
+        filters.append(Product.category_id == category_id)
     if q:
-        where.append("(name LIKE ? OR description LIKE ?)")
-        params += [f"%{q}%", f"%{q}%"]
-    cond = " AND ".join(where)
-    with db.get_conn() as conn:
-        total = conn.execute(f"SELECT COUNT(*) c FROM products WHERE {cond}", params).fetchone()["c"]
-        rows = conn.execute(
-            f"""SELECT p.*, c.name AS category_name FROM products p
-                LEFT JOIN categories c ON c.id=p.category_id
-                WHERE {cond} ORDER BY p.created_at DESC, p.id DESC
-                LIMIT ? OFFSET ?""",
-            params + [size, (page - 1) * size],
-        ).fetchall()
-    items = [db.row_to_dict(r) for r in rows]
+        like = f"%{q}%"
+        filters.append(Product.name.ilike(like) | Product.description.ilike(like))
+
+    total = session.scalar(select(func.count()).select_from(Product).where(*filters)) or 0
+    rows = session.execute(
+        select(Product, Category.name)
+        .join(Category, Category.id == Product.category_id)
+        .where(*filters)
+        .order_by(Product.created_at.desc(), Product.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    ).all()
+    items = [_product_dict(product, category_name) for product, category_name in rows]
     return {"items": items, "total": total, "page": page, "size": size, "pages": (total + size - 1) // size}
 
 
 @router.get("/{product_id}", summary="商品详情")
-def get_product(product_id: int):
-    with db.get_conn() as conn:
-        row = conn.execute(
-            "SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.id=?",
-            (product_id,),
-        ).fetchone()
+def get_product(product_id: int, session: Session = Depends(get_db)):
+    row = session.execute(
+        select(Product, Category.name)
+        .join(Category, Category.id == Product.category_id)
+        .where(Product.id == product_id)
+    ).one_or_none()
     if row is None:
         raise HTTPException(404, "商品不存在")
-    return db.row_to_dict(row)
+    product, category_name = row
+    return _product_dict(product, category_name)
 
 
 @router.get("/meta/categories", summary="全部分类")
-def list_categories():
-    with db.get_conn() as conn:
-        rows = conn.execute("SELECT * FROM categories ORDER BY sort, id").fetchall()
-    return {"items": [db.row_to_dict(r) for r in rows]}
+def list_categories(session: Session = Depends(get_db)):
+    categories = session.scalars(select(Category).order_by(Category.sort, Category.id)).all()
+    return {"items": [{"id": c.id, "name": c.name, "sort": c.sort} for c in categories]}

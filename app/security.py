@@ -7,8 +7,7 @@ import os
 import secrets
 import time
 
-SECRET_KEY = os.environ.get("SHOP_SECRET_KEY", "ecommerce-shop-dev-secret-key-change-me")
-TOKEN_TTL_HOURS = 24
+from .config import SECRET_KEY, TOKEN_TTL_HOURS
 
 
 def _b64url(data: bytes) -> str:

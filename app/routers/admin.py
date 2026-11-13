@@ -1,146 +1,185 @@
-"""管理后台路由（需管理员）：商品管理 / 订单处理 / 数据统计"""
-from fastapi import APIRouter, Depends, HTTPException, Query
+"""管理后台路由（需管理员）：商品管理 / 订单处理 / 数据统计。"""
+from datetime import datetime, timedelta
 
-from .. import db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from ..db import CartItem, Category, Order, Product, User, get_db
 from ..schemas import ProductCreateRequest, ProductUpdateRequest, StatusUpdateRequest, StockUpdateRequest
 from .deps import get_current_admin
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
 
 
-# ---------- 商品管理 ----------
 @router.post("/products", summary="新增商品")
-def create_product(body: ProductCreateRequest, admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        cat = conn.execute("SELECT id FROM categories WHERE id=?", (body.category_id,)).fetchone()
-        if cat is None:
-            raise HTTPException(400, "分类不存在")
-        cur = conn.execute(
-            "INSERT INTO products(category_id, name, description, price, stock, image) VALUES(?,?,?,?,?,?)",
-            (body.category_id, body.name, body.description, body.price, body.stock, body.image),
-        )
-        return {"ok": True, "id": cur.lastrowid}
+def create_product(body: ProductCreateRequest, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    if session.get(Category, body.category_id) is None:
+        raise HTTPException(400, "分类不存在")
+    product = Product(
+        category_id=body.category_id,
+        name=body.name,
+        description=body.description,
+        price=body.price,
+        stock=body.stock,
+        image=body.image,
+    )
+    session.add(product)
+    session.commit()
+    session.refresh(product)
+    return {"ok": True, "id": product.id}
 
 
 @router.put("/products/{product_id}", summary="更新商品")
-def update_product(product_id: int, body: ProductUpdateRequest, admin: dict = Depends(get_current_admin)):
-    fields, params = [], []
-    for key in ("category_id", "name", "description", "price", "image"):
-        val = getattr(body, key)
-        if val is not None:
-            fields.append(f"{key}=?")
-            params.append(val)
-    if not fields:
+def update_product(product_id: int, body: ProductUpdateRequest, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    product = session.get(Product, product_id)
+    if product is None:
+        raise HTTPException(404, "商品不存在")
+    changed = False
+    for field in ("category_id", "name", "description", "price", "image"):
+        value = getattr(body, field)
+        if value is not None:
+            setattr(product, field, value)
+            changed = True
+    if not changed:
         raise HTTPException(400, "没有需要更新的字段")
-    params.append(product_id)
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT id FROM products WHERE id=?", (product_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, "商品不存在")
-        conn.execute(f"UPDATE products SET {', '.join(fields)} WHERE id=?", params)
+    session.commit()
     return {"ok": True}
 
 
 @router.patch("/products/{product_id}/stock", summary="调整库存")
-def update_stock(product_id: int, body: StockUpdateRequest, admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT id FROM products WHERE id=?", (product_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, "商品不存在")
-        conn.execute("UPDATE products SET stock=? WHERE id=?", (body.stock, product_id))
+def update_stock(product_id: int, body: StockUpdateRequest, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    product = session.get(Product, product_id)
+    if product is None:
+        raise HTTPException(404, "商品不存在")
+    product.stock = body.stock
+    session.commit()
     return {"ok": True, "stock": body.stock}
 
 
 @router.patch("/products/{product_id}/status", summary="上架/下架")
-def update_status(product_id: int, body: StatusUpdateRequest, admin: dict = Depends(get_current_admin)):
+def update_status(product_id: int, body: StatusUpdateRequest, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
     if body.status not in ("on", "off"):
         raise HTTPException(400, "status 只能是 on/off")
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT id FROM products WHERE id=?", (product_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, "商品不存在")
-        conn.execute("UPDATE products SET status=? WHERE id=?", (body.status, product_id))
+    product = session.get(Product, product_id)
+    if product is None:
+        raise HTTPException(404, "商品不存在")
+    product.status = body.status
+    session.commit()
     return {"ok": True, "status": body.status}
 
 
 @router.delete("/products/{product_id}", summary="删除商品")
-def delete_product(product_id: int, admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        conn.execute("DELETE FROM products WHERE id=?", (product_id,))
-        conn.execute("DELETE FROM cart WHERE product_id=?", (product_id,))
+def delete_product(product_id: int, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    product = session.get(Product, product_id)
+    if product is None:
+        raise HTTPException(404, "商品不存在")
+    for item in session.scalars(select(CartItem).where(CartItem.product_id == product_id)).all():
+        session.delete(item)
+    session.delete(product)
+    session.commit()
     return {"ok": True}
 
 
-# ---------- 订单管理 ----------
 @router.get("/orders", summary="全部订单")
 def admin_orders(
     status: str | None = None,
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     admin: dict = Depends(get_current_admin),
+    session: Session = Depends(get_db),
 ):
-    where, params = [], []
+    filters = []
     if status:
-        where.append("status=?")
-        params.append(status)
-    cond = (" WHERE " + " AND ".join(where)) if where else ""
-    with db.get_conn() as conn:
-        total = conn.execute(f"SELECT COUNT(*) c FROM orders{cond}", params).fetchone()["c"]
-        rows = conn.execute(
-            f"""SELECT o.*, u.username FROM orders o JOIN users u ON u.id=o.user_id
-                {cond} ORDER BY o.id DESC LIMIT ? OFFSET ?""",
-            params + [size, (page - 1) * size],
-        ).fetchall()
-        data = [db.row_to_dict(r) for r in rows]
-        for d in data:
-            d["items"] = [db.row_to_dict(i) for i in conn.execute("SELECT * FROM order_items WHERE order_id=?", (d["id"],)).fetchall()]
-    return {"items": data, "total": total, "page": page, "size": size}
+        filters.append(Order.status == status)
+    total = session.scalar(select(func.count()).select_from(Order).where(*filters)) or 0
+    rows = session.execute(
+        select(Order, User.username)
+        .join(User, User.id == Order.user_id)
+        .where(*filters)
+        .order_by(Order.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    ).all()
+    items = []
+    for order, username in rows:
+        data = {
+            "id": order.id,
+            "order_no": order.order_no,
+            "user_id": order.user_id,
+            "username": username,
+            "total_amount": order.total_amount,
+            "status": order.status,
+            "created_at": order.created_at,
+            "paid_at": order.paid_at,
+            "shipped_at": order.shipped_at,
+            "items": [
+                {
+                    "id": i.id,
+                    "product_id": i.product_id,
+                    "product_name": i.product_name,
+                    "price": i.price,
+                    "quantity": i.quantity,
+                }
+                for i in order.items
+            ],
+        }
+        items.append(data)
+    return {"items": items, "total": total, "page": page, "size": size}
 
 
 @router.post("/orders/{order_id}/ship", summary="发货")
-def ship_order(order_id: int, admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, "订单不存在")
-        if row["status"] != "paid":
-            raise HTTPException(400, "仅已付款订单可发货")
-        conn.execute("UPDATE orders SET status='shipped', shipped_at=datetime('now','localtime') WHERE id=?", (order_id,))
+def ship_order(order_id: int, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    order = session.get(Order, order_id)
+    if order is None:
+        raise HTTPException(404, "订单不存在")
+    if order.status != "paid":
+        raise HTTPException(400, "仅已付款订单可发货")
+    order.status = "shipped"
+    order.shipped_at = datetime.now()
+    session.commit()
     return {"ok": True, "status": "shipped"}
 
 
 @router.post("/orders/{order_id}/complete", summary="完成订单")
-def complete_order(order_id: int, admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, "订单不存在")
-        if row["status"] not in ("paid", "shipped"):
-            raise HTTPException(400, "仅已付款/已发货订单可完成")
-        conn.execute("UPDATE orders SET status='completed' WHERE id=?", (order_id,))
+def complete_order(order_id: int, admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    order = session.get(Order, order_id)
+    if order is None:
+        raise HTTPException(404, "订单不存在")
+    if order.status not in ("paid", "shipped"):
+        raise HTTPException(400, "仅已付款/已发货订单可完成")
+    order.status = "completed"
+    session.commit()
     return {"ok": True, "status": "completed"}
 
 
-# ---------- 数据统计 ----------
 @router.get("/stats", summary="经营统计")
-def stats(admin: dict = Depends(get_current_admin)):
-    with db.get_conn() as conn:
-        revenue = conn.execute("SELECT COALESCE(SUM(total_amount),0) v FROM orders WHERE status IN ('paid','shipped','completed')").fetchone()["v"]
-        order_total = conn.execute("SELECT COUNT(*) c FROM orders").fetchone()["c"]
-        todo = conn.execute("SELECT COUNT(*) c FROM orders WHERE status IN ('pending','paid')").fetchone()["c"]
-        prod_total = conn.execute("SELECT COUNT(*) c FROM products").fetchone()["c"]
-        low_stock = conn.execute("SELECT COUNT(*) c FROM products WHERE status='on' AND stock<=10").fetchone()["c"]
-        top = [db.row_to_dict(r) for r in conn.execute(
-            "SELECT name, sales, price, stock FROM products ORDER BY sales DESC LIMIT 5").fetchall()]
-        trend_rows = conn.execute(
-            """SELECT date(paid_at) d, SUM(total_amount) v FROM orders
-               WHERE paid_at IS NOT NULL AND date(paid_at) >= date('now','-6 days')
-               GROUP BY date(paid_at) ORDER BY d""").fetchall()
-        trend = [{"date": r["d"], "amount": round(r["v"], 2)} for r in trend_rows]
-        status_rows = conn.execute("SELECT status, COUNT(*) c FROM orders GROUP BY status").fetchall()
-        by_status = {r["status"]: r["c"] for r in status_rows}
+def stats(admin: dict = Depends(get_current_admin), session: Session = Depends(get_db)):
+    revenue = session.scalar(
+        select(func.coalesce(func.sum(Order.total_amount), 0)).where(Order.status.in_(["paid", "shipped", "completed"]))
+    ) or 0
+    order_total = session.scalar(select(func.count()).select_from(Order)) or 0
+    todo = session.scalar(select(func.count()).select_from(Order).where(Order.status.in_(["pending", "paid"]))) or 0
+    prod_total = session.scalar(select(func.count()).select_from(Product)) or 0
+    low_stock = session.scalar(
+        select(func.count()).select_from(Product).where(Product.status == "on", Product.stock <= 10)
+    ) or 0
+    top = [
+        {"name": p.name, "sales": p.sales, "price": p.price, "stock": p.stock}
+        for p in session.scalars(select(Product).order_by(Product.sales.desc()).limit(5)).all()
+    ]
+    since = datetime.now() - timedelta(days=6)
+    trend_rows = session.execute(
+        select(func.date(Order.paid_at), func.sum(Order.total_amount))
+        .where(Order.paid_at.is_not(None), Order.paid_at >= since)
+        .group_by(func.date(Order.paid_at))
+        .order_by(func.date(Order.paid_at))
+    ).all()
+    trend = [{"date": str(day), "amount": round(float(amount), 2)} for day, amount in trend_rows]
+    status_rows = session.execute(select(Order.status, func.count()).group_by(Order.status)).all()
+    by_status = {status: count for status, count in status_rows}
     return {
-        "revenue": round(revenue, 2),
+        "revenue": round(float(revenue), 2),
         "order_total": order_total,
         "todo_orders": todo,
         "product_total": prod_total,

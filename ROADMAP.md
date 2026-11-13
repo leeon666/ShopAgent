@@ -13,8 +13,10 @@
 
 ## 下一阶段
 
-- [ ] 把 SQLite 原始 SQL 迁移到 SQLAlchemy + PostgreSQL
-- [ ] 引入 Alembic 数据库迁移
+- [x] 把 SQLite 原始 SQL 迁移到 SQLAlchemy
+- [x] 引入 Alembic 数据库迁移（已在 SQLite 验证）
+- [x] 增加 DATABASE_URL，支持 PostgreSQL
+- [ ] 使用 Docker PostgreSQL 验证迁移（本机 Docker Desktop 暂未启动）
 - [ ] 增加 Redis 缓存与会话存储
 - [ ] 增加消息队列和异步任务，处理订单超时、退款等场景
 - [ ] 完善 RBAC 与审计日志

@@ -1,22 +1,27 @@
 """通用依赖：当前用户 / 当前管理员"""
 from fastapi import Depends, Header, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from .. import db, security
+from .. import security
+from ..db import User, get_db
 
 
-def get_current_user(authorization: str = Header(None)) -> dict:
+def get_current_user(authorization: str = Header(None), session: Session = Depends(get_db)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "未登录")
     payload = security.verify_token(authorization[7:])
     if payload is None:
         raise HTTPException(401, "登录已过期，请重新登录")
-    with db.get_conn() as conn:
-        row = conn.execute("SELECT * FROM users WHERE id=?", (payload["uid"],)).fetchone()
-    if row is None:
+    user = session.scalar(select(User).where(User.id == payload["uid"]))
+    if user is None:
         raise HTTPException(401, "用户不存在")
-    user = db.row_to_dict(row)
-    user.pop("password_hash", None)
-    return user
+    return {
+        "id": user.id,
+        "username": user.username,
+        "role": user.role,
+        "created_at": user.created_at,
+    }
 
 
 def get_current_admin(user: dict = Depends(get_current_user)) -> dict:

@@ -1,104 +1,168 @@
-"""SQLite 连接与建表（零第三方依赖）"""
-import os
-import sqlite3
+"""SQLAlchemy 模型与会话。"""
+from datetime import datetime
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.environ.get("SHOP_DB_PATH", os.path.join(BASE_DIR, "data", "shop.db"))
+from sqlalchemy import (
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    create_engine,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    sort INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category_id INTEGER NOT NULL REFERENCES categories(id),
-    name TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    price REAL NOT NULL,
-    stock INTEGER NOT NULL DEFAULT 0,
-    sales INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'on',        -- on 上架 / off 下架
-    image TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-CREATE TABLE IF NOT EXISTS cart (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    product_id INTEGER NOT NULL REFERENCES products(id),
-    quantity INTEGER NOT NULL DEFAULT 1,
-    UNIQUE(user_id, product_id)
-);
-CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_no TEXT UNIQUE NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    total_amount REAL NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',   -- pending/paid/shipped/completed/cancelled
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-    paid_at TEXT,
-    shipped_at TEXT
-);
-CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL REFERENCES orders(id),
-    product_id INTEGER NOT NULL,
-    product_name TEXT NOT NULL,
-    price REAL NOT NULL,
-    quantity INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL REFERENCES orders(id),
-    amount REAL NOT NULL,
-    pay_type TEXT NOT NULL DEFAULT 'mock',
-    status TEXT NOT NULL DEFAULT 'success',
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-CREATE TABLE IF NOT EXISTS after_sales_tickets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ticket_no TEXT UNIQUE NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES users(id),
-    order_id INTEGER NOT NULL REFERENCES orders(id),
-    type TEXT NOT NULL DEFAULT 'refund',
-    reason TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'pending',
-    refund_amount REAL,
-    resolution TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-CREATE TABLE IF NOT EXISTS after_sales_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ticket_id INTEGER NOT NULL REFERENCES after_sales_tickets(id),
-    sender_id INTEGER,
-    sender_role TEXT NOT NULL DEFAULT 'user',
-    content TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-"""
+from .config import DATABASE_URL
 
 
-def get_conn() -> sqlite3.Connection:
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+class Base(DeclarativeBase):
+    pass
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    role: Mapped[str] = mapped_column(String(16), default="user")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+
+    orders: Mapped[list["Order"]] = relationship(back_populates="user")
+    after_sales_tickets: Mapped[list["AfterSalesTicket"]] = relationship(back_populates="user")
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    sort: Mapped[int] = mapped_column(Integer, default=0)
+
+    products: Mapped[list["Product"]] = relationship(back_populates="category")
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    name: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str] = mapped_column(Text, default="")
+    price: Mapped[float] = mapped_column(Float)
+    stock: Mapped[int] = mapped_column(Integer, default=0)
+    sales: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(8), default="on")
+    image: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+
+    category: Mapped["Category"] = relationship(back_populates="products")
+
+
+class CartItem(Base):
+    __tablename__ = "cart"
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_cart_user_product"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_no: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    total_amount: Mapped[float] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    paid_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    shipped_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="orders")
+    items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
+    payments: Mapped[list["Payment"]] = relationship(back_populates="order")
+    after_sales_tickets: Mapped[list["AfterSalesTicket"]] = relationship(back_populates="order")
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    product_id: Mapped[int] = mapped_column(Integer)
+    product_name: Mapped[str] = mapped_column(String(128))
+    price: Mapped[float] = mapped_column(Float)
+    quantity: Mapped[int] = mapped_column(Integer)
+
+    order: Mapped["Order"] = relationship(back_populates="items")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    amount: Mapped[float] = mapped_column(Float)
+    pay_type: Mapped[str] = mapped_column(String(16), default="mock")
+    status: Mapped[str] = mapped_column(String(16), default="success")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+
+    order: Mapped["Order"] = relationship(back_populates="payments")
+
+
+class AfterSalesTicket(Base):
+    __tablename__ = "after_sales_tickets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_no: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    type: Mapped[str] = mapped_column(String(16), default="refund")
+    reason: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    refund_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    resolution: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.now, onupdate=datetime.now)
+
+    user: Mapped["User"] = relationship(back_populates="after_sales_tickets")
+    order: Mapped["Order"] = relationship(back_populates="after_sales_tickets")
+    messages: Mapped[list["AfterSalesMessage"]] = relationship(
+        back_populates="ticket", cascade="all, delete-orphan"
+    )
+
+
+class AfterSalesMessage(Base):
+    __tablename__ = "after_sales_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("after_sales_tickets.id"))
+    sender_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sender_role: Mapped[str] = mapped_column(String(16), default="user")
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+
+    ticket: Mapped["AfterSalesTicket"] = relationship(back_populates="messages")
+
+
+engine_kwargs: dict = {"pool_pre_ping": True}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
 def init_db() -> None:
-    with get_conn() as conn:
-        conn.executescript(SCHEMA)
+    Base.metadata.create_all(engine)
 
 
-def row_to_dict(row) -> dict:
-    return dict(row) if row is not None else None
+def get_db():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

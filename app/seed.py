@@ -1,5 +1,8 @@
-"""演示数据：仅在空库时写入（分类 + 商品 + 管理员/测试用户）"""
-from . import db, security
+"""演示数据：仅在空库时写入（分类 + 商品 + 管理员/测试用户）。"""
+from sqlalchemy import select
+
+from . import security
+from .db import Category, Product, SessionLocal, User
 
 CATEGORIES = ["T恤", "卫衣", "外套", "裤子", "配饰"]
 
@@ -19,23 +22,23 @@ PRODUCTS = [
 
 
 def seed_if_empty() -> None:
-    with db.get_conn() as conn:
-        count = conn.execute("SELECT COUNT(*) c FROM products").fetchone()["c"]
-        if count:
+    with SessionLocal() as session:
+        if session.scalar(select(Product.id).limit(1)) is not None:
             return
-        for i, name in enumerate(CATEGORIES):
-            conn.execute("INSERT INTO categories(name, sort) VALUES(?,?)", (name, i))
-        for cat_id, name, desc, price, stock in PRODUCTS:
-            conn.execute(
-                "INSERT INTO products(category_id, name, description, price, stock, status) VALUES(?,?,?,?,?,'on')",
-                (cat_id, name, desc, price, stock),
+        for index, name in enumerate(CATEGORIES):
+            session.add(Category(name=name, sort=index))
+        for category_id, name, description, price, stock in PRODUCTS:
+            session.add(
+                Product(
+                    category_id=category_id,
+                    name=name,
+                    description=description,
+                    price=price,
+                    stock=stock,
+                    status="on",
+                )
             )
-        conn.execute(
-            "INSERT INTO users(username, password_hash, role) VALUES(?,?,?)",
-            ("admin", security.hash_password("admin123"), "admin"),
-        )
-        conn.execute(
-            "INSERT INTO users(username, password_hash, role) VALUES(?,?,?)",
-            ("demo", security.hash_password("123456"), "user"),
-        )
+        session.add(User(username="admin", password_hash=security.hash_password("admin123"), role="admin"))
+        session.add(User(username="demo", password_hash=security.hash_password("123456"), role="user"))
+        session.commit()
     print("[seed] 演示数据已写入：11 个商品 / 5 个分类 / 管理员 admin / 测试用户 demo")
