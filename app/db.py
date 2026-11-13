@@ -5,6 +5,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -146,6 +147,31 @@ class AfterSalesMessage(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
     ticket: Mapped["AfterSalesTicket"] = relationship(back_populates="messages")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    actor_role: Mapped[str] = mapped_column(String(16), default="system")
+    action: Mapped[str] = mapped_column(String(64), index=True)
+    target_type: Mapped[str] = mapped_column(String(32), default="")
+    target_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+
+
+class IdempotencyRecord(Base):
+    __tablename__ = "idempotency_records"
+    __table_args__ = (UniqueConstraint("user_id", "idempotency_key", name="uq_idempotency_user_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    action: Mapped[str] = mapped_column(String(64))
+    resource_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
 
 engine_kwargs: dict = {"pool_pre_ping": True}

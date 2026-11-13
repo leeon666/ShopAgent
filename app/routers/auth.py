@@ -1,9 +1,10 @@
 """认证路由：注册 / 登录"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import security
+from ..cache import rate_limit
 from ..db import User, get_db
 from ..schemas import LoginRequest, RegisterRequest
 
@@ -26,7 +27,10 @@ def register(body: RegisterRequest, session: Session = Depends(get_db)):
 
 
 @router.post("/login", summary="登录")
-def login(body: LoginRequest, session: Session = Depends(get_db)):
+def login(body: LoginRequest, request: Request, session: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limit(f"login:{client_ip}:{body.username.strip()}", limit=10, window_seconds=60):
+        raise HTTPException(429, "尝试过于频繁，请稍后再试")
     user = session.scalar(select(User).where(User.username == body.username.strip()))
     if user is None or not security.verify_password(body.password, user.password_hash):
         raise HTTPException(401, "用户名或密码错误")

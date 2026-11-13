@@ -3,10 +3,13 @@ import secrets
 import time
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import tasks
+from ..audit import get_idempotency, record_audit, save_idempotency
+from ..celery_app import celery_app
 from ..db import CartItem, Order, OrderItem, Product, get_db
 from .deps import get_current_user
 
@@ -47,7 +50,15 @@ def _order_detail(session: Session, order_id: int, user_id: int | None = None) -
 
 
 @router.post("", summary="从购物车下单")
-def create_order(user: dict = Depends(get_current_user), session: Session = Depends(get_db)):
+def create_order(
+    user: dict = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if idempotency_key:
+        existing = get_idempotency(session, user["id"], idempotency_key)
+        if existing and existing.resource_id:
+            return _order_detail(session, existing.resource_id)
     cart_rows = session.execute(
         select(CartItem, Product).join(Product, Product.id == CartItem.product_id).where(CartItem.user_id == user["id"])
     ).all()
@@ -78,7 +89,12 @@ def create_order(user: dict = Depends(get_current_user), session: Session = Depe
         product.stock -= item.quantity
         product.sales += item.quantity
         session.delete(item)
+    if idempotency_key:
+        save_idempotency(session, user["id"], idempotency_key, "order.create", order.id)
+    record_audit(session, user, "order.create", "order", order.id, {"order_no": order.order_no})
     session.commit()
+    if not celery_app.conf.task_always_eager:
+        tasks.expire_pending_order.apply_async(args=[order.id], countdown=1800)
     return _order_detail(session, order.id)
 
 
@@ -108,5 +124,6 @@ def cancel_order(order_id: int, user: dict = Depends(get_current_user), session:
         if product is not None:
             product.stock += item.quantity
             product.sales = max(0, product.sales - item.quantity)
+    record_audit(session, user, "order.cancel", "order", order.id, {"order_no": order.order_no})
     session.commit()
     return {"ok": True, "status": "cancelled"}

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..audit import record_audit
 from ..db import AfterSalesMessage, AfterSalesTicket, Order, get_db
 from ..schemas import AfterSalesCreateRequest, AfterSalesMessageRequest, AfterSalesReviewRequest
 from .deps import get_current_admin, get_current_user
@@ -90,6 +91,7 @@ def create_ticket(body: AfterSalesCreateRequest, user: dict = Depends(get_curren
         reason=body.reason.strip(),
     )
     session.add(ticket)
+    record_audit(session, user, "aftersale.create", "after_sales_ticket", ticket.id, {"ticket_no": ticket.ticket_no})
     session.commit()
     session.refresh(ticket)
     return _ticket_dict(ticket)
@@ -137,6 +139,7 @@ def add_message(ticket_id: int, body: AfterSalesMessageRequest, user: dict = Dep
             content=body.content.strip(),
         )
     )
+    record_audit(session, user, "aftersale.message", "after_sales_ticket", ticket.id)
     session.commit()
     session.refresh(ticket)
     return _ticket_dict(ticket)
@@ -148,6 +151,7 @@ def cancel_ticket(ticket_id: int, user: dict = Depends(get_current_user), sessio
     if ticket.status not in ("pending", "awaiting_user"):
         raise HTTPException(400, "当前状态不能取消")
     ticket.status = "cancelled"
+    record_audit(session, user, "aftersale.cancel", "after_sales_ticket", ticket.id)
     session.commit()
     return {"ok": True, "status": "cancelled"}
 
@@ -164,6 +168,14 @@ def review_ticket(ticket_id: int, body: AfterSalesReviewRequest, user: dict = De
     ticket.resolution = body.resolution.strip()
     if body.refund_amount is not None:
         ticket.refund_amount = body.refund_amount
+    record_audit(
+        session,
+        user,
+        "aftersale.review",
+        "after_sales_ticket",
+        ticket.id,
+        {"status": body.status, "refund_amount": body.refund_amount},
+    )
     session.commit()
     session.refresh(ticket)
     return _ticket_dict(ticket)

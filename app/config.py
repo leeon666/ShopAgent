@@ -10,6 +10,7 @@ def _default_database_url() -> str:
 
 
 DATABASE_URL = os.environ.get("DATABASE_URL", _default_database_url())
+REDIS_URL = os.environ.get("REDIS_URL")
 
 SECRET_KEY = os.environ.get("SHOP_SECRET_KEY", "ecommerce-shop-dev-secret-key-change-me")
 TOKEN_TTL_HOURS = int(os.environ.get("SHOP_TOKEN_TTL_HOURS", "24"))

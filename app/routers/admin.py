@@ -5,11 +5,37 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..db import CartItem, Category, Order, Product, User, get_db
+from ..audit import record_audit
+from ..db import AuditLog, CartItem, Category, Order, Product, User, get_db
 from ..schemas import ProductCreateRequest, ProductUpdateRequest, StatusUpdateRequest, StockUpdateRequest
 from .deps import get_current_admin
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
+
+
+@router.get("/audit-logs", summary="审计日志")
+def audit_logs(
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    admin: dict = Depends(get_current_admin),
+    session: Session = Depends(get_db),
+):
+    total = session.scalar(select(func.count()).select_from(AuditLog)) or 0
+    rows = session.scalars(select(AuditLog).order_by(AuditLog.id.desc()).offset((page - 1) * size).limit(size)).all()
+    items = [
+        {
+            "id": log.id,
+            "actor_id": log.actor_id,
+            "actor_role": log.actor_role,
+            "action": log.action,
+            "target_type": log.target_type,
+            "target_id": log.target_id,
+            "detail": log.detail,
+            "created_at": log.created_at,
+        }
+        for log in rows
+    ]
+    return {"items": items, "total": total, "page": page, "size": size}
 
 
 @router.post("/products", summary="新增商品")
@@ -27,6 +53,8 @@ def create_product(body: ProductCreateRequest, admin: dict = Depends(get_current
     session.add(product)
     session.commit()
     session.refresh(product)
+    record_audit(session, admin, "product.create", "product", product.id, {"name": product.name})
+    session.commit()
     return {"ok": True, "id": product.id}
 
 
@@ -43,6 +71,7 @@ def update_product(product_id: int, body: ProductUpdateRequest, admin: dict = De
             changed = True
     if not changed:
         raise HTTPException(400, "没有需要更新的字段")
+    record_audit(session, admin, "product.update", "product", product.id, {"name": product.name})
     session.commit()
     return {"ok": True}
 
@@ -53,6 +82,7 @@ def update_stock(product_id: int, body: StockUpdateRequest, admin: dict = Depend
     if product is None:
         raise HTTPException(404, "商品不存在")
     product.stock = body.stock
+    record_audit(session, admin, "product.stock_update", "product", product.id, {"stock": body.stock})
     session.commit()
     return {"ok": True, "stock": body.stock}
 
@@ -65,6 +95,7 @@ def update_status(product_id: int, body: StatusUpdateRequest, admin: dict = Depe
     if product is None:
         raise HTTPException(404, "商品不存在")
     product.status = body.status
+    record_audit(session, admin, "product.status_update", "product", product.id, {"status": body.status})
     session.commit()
     return {"ok": True, "status": body.status}
 
@@ -77,6 +108,7 @@ def delete_product(product_id: int, admin: dict = Depends(get_current_admin), se
     for item in session.scalars(select(CartItem).where(CartItem.product_id == product_id)).all():
         session.delete(item)
     session.delete(product)
+    record_audit(session, admin, "product.delete", "product", product_id, {"name": product.name})
     session.commit()
     return {"ok": True}
 
@@ -137,6 +169,7 @@ def ship_order(order_id: int, admin: dict = Depends(get_current_admin), session:
         raise HTTPException(400, "仅已付款订单可发货")
     order.status = "shipped"
     order.shipped_at = datetime.now()
+    record_audit(session, admin, "order.ship", "order", order.id, {"order_no": order.order_no})
     session.commit()
     return {"ok": True, "status": "shipped"}
 
@@ -149,6 +182,7 @@ def complete_order(order_id: int, admin: dict = Depends(get_current_admin), sess
     if order.status not in ("paid", "shipped"):
         raise HTTPException(400, "仅已付款/已发货订单可完成")
     order.status = "completed"
+    record_audit(session, admin, "order.complete", "order", order.id, {"order_no": order.order_no})
     session.commit()
     return {"ok": True, "status": "completed"}
 

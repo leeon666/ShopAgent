@@ -1,8 +1,11 @@
 """商品浏览路由。"""
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..cache import cache_get, cache_set
 from ..db import Category, Product, get_db
 
 router = APIRouter(prefix="/api/products", tags=["商品"])
@@ -69,5 +72,10 @@ def get_product(product_id: int, session: Session = Depends(get_db)):
 
 @router.get("/meta/categories", summary="全部分类")
 def list_categories(session: Session = Depends(get_db)):
+    cached = cache_get("categories")
+    if cached:
+        return {"items": json.loads(cached)}
     categories = session.scalars(select(Category).order_by(Category.sort, Category.id)).all()
-    return {"items": [{"id": c.id, "name": c.name, "sort": c.sort} for c in categories]}
+    items = [{"id": c.id, "name": c.name, "sort": c.sort} for c in categories]
+    cache_set("categories", json.dumps(items), ttl_seconds=60)
+    return {"items": items}

@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..audit import record_audit
 from ..db import Order, Payment, get_db
 from ..schemas import PaymentRequest
 from .deps import get_current_user
@@ -24,5 +25,6 @@ def mock_pay(body: PaymentRequest, user: dict = Depends(get_current_user), sessi
     order.status = "paid"
     order.paid_at = datetime.now()
     order_no = order.order_no
+    record_audit(session, user, "payment.mock", "order", order.id, {"order_no": order_no})
     session.commit()
     return {"ok": True, "message": "支付成功", "order_no": order_no, "status": "paid"}

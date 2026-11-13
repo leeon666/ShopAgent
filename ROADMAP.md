@@ -17,9 +17,11 @@
 - [x] 引入 Alembic 数据库迁移（已在 SQLite 验证）
 - [x] 增加 DATABASE_URL，支持 PostgreSQL
 - [ ] 使用 Docker PostgreSQL 验证迁移（本机 Docker Desktop 暂未启动）
-- [ ] 增加 Redis 缓存与会话存储
-- [ ] 增加消息队列和异步任务，处理订单超时、退款等场景
-- [ ] 完善 RBAC 与审计日志
+- [x] 增加 Redis 缓存与登录限流（无 Redis 时回退 fakeredis）
+- [x] 增加 Celery 异步任务，处理订单超时取消（无 Redis 时 eager 模式）
+- [x] 增加审计日志与幂等键
+- [ ] 使用 Docker 真 Redis + Celery worker 验证异步链路
+- [ ] 完善 RBAC 角色与权限
 - [ ] 构建售后政策 RAG 知识库
 - [ ] 实现 LangGraph 售后 Agent 与业务工具调用
 - [ ] 增加人工审批、流式响应、评测与 Trace
