@@ -71,6 +71,7 @@ uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
 
 - 商城前台：http://127.0.0.1:8000/static/index.html
 - 管理后台：http://127.0.0.1:8000/static/admin.html
+- Agent 演示页：http://127.0.0.1:8000/static/agent.html
 - Swagger：http://127.0.0.1:8000/docs
 
 演示账号：
@@ -106,6 +107,17 @@ POST /api/agent-runs/tickets/{ticket_id}
 ```http
 GET /api/agent-runs/{run_id}
 ```
+
+流式运行：
+
+```http
+POST /api/agent-runs/tickets/{ticket_id}/stream
+Content-Type: application/json
+
+{"message": "商品破损，想申请退款"}
+```
+
+流式接口使用 SSE，依次推送 `run_started`、每个 LangGraph 节点和最终结构化结果。
 
 输出包含：
 

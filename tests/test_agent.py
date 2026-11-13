@@ -71,3 +71,28 @@ def test_agent_run_with_rag_and_approval():
     fetched = client.get(f"/api/agent-runs/{data['id']}", headers=headers)
     assert fetched.status_code == 200
     assert fetched.json()["output"]["recommended_action"] == "create_refund_review"
+
+
+def test_agent_sse_stream():
+    token = _register()
+    headers = {"Authorization": f"Bearer {token}"}
+    order = _paid_order(token)
+    ticket = client.post(
+        "/api/after-sales",
+        json={"order_id": order["id"], "type": "logistics", "reason": "物流不更新"},
+        headers=headers,
+    ).json()
+
+    with client.stream(
+        "POST",
+        f"/api/agent-runs/tickets/{ticket['id']}/stream",
+        json={"message": "物流一直不更新"},
+        headers=headers,
+    ) as response:
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        body = "".join(response.iter_text())
+
+    assert '"event": "run_started"' in body
+    assert '"event": "node"' in body
+    assert '"event": "completed"' in body
