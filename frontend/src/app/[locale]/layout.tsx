@@ -27,8 +27,10 @@ export async function generateMetadata({
     alternates: {
       // x-default points to the canonical default-locale tree.
       languages: {
-        ...Object.fromEntries(SITE.locales.map((l) => [l, `${SITE.url}/${l}`])),
-        "x-default": `${SITE.url}/${SITE.defaultLocale}`,
+        ...Object.fromEntries(
+          SITE.locales.map((l) => [l, l === SITE.defaultLocale ? SITE.url : `${SITE.url}/${l}`]),
+        ),
+        "x-default": SITE.url,
       },
     },
     openGraph: {

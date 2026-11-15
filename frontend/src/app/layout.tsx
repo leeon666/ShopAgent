@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
-import { defaultLocale } from "@/i18n";
 import { SITE } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -58,13 +58,14 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
-    <html lang={defaultLocale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="font-body">{children}</body>
     </html>
   );

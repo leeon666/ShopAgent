@@ -9,6 +9,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { useLocale } from "next-intl";
+
 import { useAuth } from "@/hooks";
 
 const DEFAULT_PROMPTS = [
@@ -34,6 +36,29 @@ const DEFAULT_PROMPTS = [
   },
 ];
 
+const CHINESE_PROMPTS = [
+  {
+    icon: FileSearch,
+    title: "总结知识库",
+    prompt: "请总结知识库中最新导入文档的核心内容。",
+  },
+  {
+    icon: BookOpen,
+    title: "解释 RAG",
+    prompt: "请用 200 字以内解释向量检索和 RAG 如何配合工作。",
+  },
+  {
+    icon: Code2,
+    title: "编写代码",
+    prompt: "请写一个使用 bcrypt 哈希密码并校验密码的 Python 函数。",
+  },
+  {
+    icon: Sparkles,
+    title: "整理思路",
+    prompt: "请给我 5 个面向开发工具的新用户引导邮件创意。",
+  },
+];
+
 export interface ChatEmptyPrompt {
   icon: LucideIcon;
   title: string;
@@ -51,8 +76,11 @@ export function ChatEmptyState({
   agentLabel = "pydantic_ai",
   prompts = DEFAULT_PROMPTS,
 }: ChatEmptyStateProps) {
+  const locale = useLocale();
+  const isChinese = locale === "zh";
   const { user } = useAuth();
   const firstName = user?.full_name?.split(" ")[0] || user?.email?.split("@")[0];
+  const activePrompts = isChinese ? CHINESE_PROMPTS : prompts;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12 md:py-16">
@@ -61,15 +89,23 @@ export function ChatEmptyState({
           <Sparkles className="h-5 w-5" />
         </div>
         <h2 className="text-foreground font-display text-2xl font-semibold tracking-tight md:text-3xl">
-          {firstName ? `How can I help, ${firstName}?` : "How can I help today?"}
+          {isChinese
+            ? firstName
+              ? `需要我做什么，${firstName}？`
+              : "今天需要我做什么？"
+            : firstName
+              ? `How can I help, ${firstName}?`
+              : "How can I help today?"}
         </h2>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm leading-relaxed">
-          Ask anything — get streaming answers with tool calls and citations from your knowledge.
+          {isChinese
+            ? "直接描述你的问题，Agent 会调用工具、检索证据并给出来源。"
+            : "Ask anything — get streaming answers with tool calls and citations from your knowledge."}
         </p>
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {prompts.map((p) => (
+        {activePrompts.map((p) => (
           <button
             key={p.title}
             type="button"
@@ -92,12 +128,14 @@ export function ChatEmptyState({
 
       <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
         <kbd className="border-border bg-card rounded px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
-        <span>command palette</span>
+        <span>{isChinese ? "命令面板" : "command palette"}</span>
         <span className="text-border">·</span>
         <kbd className="border-border bg-card rounded px-1.5 py-0.5 font-mono text-[10px]">/</kbd>
-        <span>slash commands</span>
+        <span>{isChinese ? "斜杠命令" : "slash commands"}</span>
         <span className="text-border">·</span>
-        <span className="text-muted-foreground/70">Powered by {agentLabel}</span>
+        <span className="text-muted-foreground/70">
+          {isChinese ? "由" : "Powered by"} {agentLabel} {isChinese ? "驱动" : ""}
+        </span>
       </div>
     </div>
   );

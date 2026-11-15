@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import {
   Database,
   List,
@@ -28,8 +29,13 @@ interface ConversationsResponse {
   items: Array<{ id: string }>;
 }
 
-function getGreeting(): string {
+function getGreeting(isChinese = false): string {
   const hour = new Date().getHours();
+  if (isChinese) {
+    if (hour < 12) return "早上好";
+    if (hour < 18) return "下午好";
+    return "晚上好";
+  }
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
@@ -37,6 +43,7 @@ function getGreeting(): string {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isChinese = useLocale() === "zh";
 
   // All independent → run in parallel, cached by React Query.
   const health = useQuery({
@@ -73,14 +80,22 @@ export default function DashboardPage() {
       <OnboardingBanner />
 
       <PageHeader
-        eyebrow="Dashboard"
-        title={firstName ? `${getGreeting()}, ${firstName}` : getGreeting()}
-        description="Here's what's happening with your workspace today."
+        eyebrow={isChinese ? "仪表盘" : "Dashboard"}
+        title={
+          firstName
+            ? `${getGreeting(isChinese)}, ${firstName}`
+            : getGreeting(isChinese)
+        }
+        description={
+          isChinese
+            ? "查看今天的工作区运行情况。"
+            : "Here's what's happening with your workspace today."
+        }
         actions={
           <Button asChild>
             <Link href={ROUTES.CHAT}>
               <Plus className="h-4 w-4" />
-              New chat
+              {isChinese ? "新建对话" : "New chat"}
             </Link>
           </Button>
         }
@@ -96,7 +111,13 @@ export default function DashboardPage() {
             )}
           />
           <span className="text-foreground font-medium">
-            {healthy ? health.data?.status || "Operational" : "API offline"}
+            {healthy
+              ? health.data?.status === "healthy" && isChinese
+                ? "运行正常"
+                : health.data?.status || (isChinese ? "运行正常" : "Operational")
+              : isChinese
+                ? "API 离线"
+                : "API offline"}
           </span>
         </span>
         {health.data?.version && (
@@ -104,33 +125,47 @@ export default function DashboardPage() {
         )}
         <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
           <Database className="h-3.5 w-3.5" />
-          {rag.data ? `${rag.data.collections} collections` : "—"}
+          {rag.data
+            ? isChinese
+              ? `${rag.data.collections} 个集合`
+              : `${rag.data.collections} collections`
+            : "—"}
         </span>
       </div>
 
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground font-mono text-xs tracking-wider uppercase">
-          Workspace metrics
+          {isChinese ? "工作区指标" : "Workspace metrics"}
         </h2>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Conversations"
+          label={isChinese ? "对话" : "Conversations"}
           value={conversations.isLoading ? "—" : (conversations.data ?? 0).toLocaleString()}
           icon={MessageSquare}
-          footer="across all chats"
+          footer={isChinese ? "全部聊天" : "across all chats"}
           loading={conversations.isLoading}
         />
         <StatCard
-          label="Knowledge base"
+          label={isChinese ? "知识库" : "Knowledge base"}
           value={rag.data ? rag.data.vectors.toLocaleString() : "—"}
-          unit={rag.data ? `vector${rag.data.vectors === 1 ? "" : "s"}` : undefined}
+          unit={
+            rag.data
+              ? isChinese
+                ? "个向量"
+                : `vector${rag.data.vectors === 1 ? "" : "s"}`
+              : undefined
+          }
           icon={Database}
           footer={
             rag.data
-              ? `${rag.data.collections} collection${rag.data.collections === 1 ? "" : "s"} indexed`
-              : "indexed vectors"
+              ? isChinese
+                ? `已索引 ${rag.data.collections} 个集合`
+                : `${rag.data.collections} collection${rag.data.collections === 1 ? "" : "s"} indexed`
+              : isChinese
+                ? "已索引向量"
+                : "indexed vectors"
           }
           loading={rag.isLoading}
         />
@@ -149,19 +184,19 @@ export default function DashboardPage() {
       {isAppAdmin(user) && (
         <div>
           <h2 className="font-display text-foreground mb-3 text-base font-semibold">
-            Admin actions
+            {isChinese ? "管理操作" : "Admin actions"}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <AdminTile
               icon={Star}
-              label="Response ratings"
-              description="View and manage ratings"
+              label={isChinese ? "响应评分" : "Response ratings"}
+              description={isChinese ? "查看和管理用户评分" : "View and manage ratings"}
               href={ROUTES.ADMIN_RATINGS}
             />
             <AdminTile
               icon={List}
-              label="All conversations"
-              description="Inspect any user's chats"
+              label={isChinese ? "所有对话" : "All conversations"}
+              description={isChinese ? "查看任意用户的聊天" : "Inspect any user's chats"}
               href={ROUTES.ADMIN_CONVERSATIONS}
             />
           </div>

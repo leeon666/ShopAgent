@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import {
   BookOpen,
   Database,
@@ -18,21 +19,31 @@ interface Action {
   featured?: boolean;
 }
 
-const ACTIONS: Action[] = [
-  { label: "Start a chat", icon: MessageSquare, href: ROUTES.CHAT, featured: true },
-  { label: "Upload to KB", icon: Database, href: ROUTES.RAG },
-  { label: "Settings", icon: Settings, href: ROUTES.SETTINGS },
-  { label: "API docs", icon: BookOpen, href: `${BACKEND_URL}/docs`, external: true },
-];
-
 export function QuickActions() {
+  const isChinese = useLocale() === "zh";
+  const actions: Action[] = [
+    {
+      label: isChinese ? "开始聊天" : "Start a chat",
+      icon: MessageSquare,
+      href: ROUTES.CHAT,
+      featured: true,
+    },
+    { label: isChinese ? "上传到知识库" : "Upload to KB", icon: Database, href: ROUTES.RAG },
+    { label: isChinese ? "设置" : "Settings", icon: Settings, href: ROUTES.SETTINGS },
+    {
+      label: isChinese ? "API 文档" : "API docs",
+      icon: BookOpen,
+      href: `${BACKEND_URL}/docs`,
+      external: true,
+    },
+  ];
   return (
     <div className="border-border bg-card rounded-xl border p-4 sm:p-5">
       <h2 className="text-foreground/55 mb-2.5 font-mono text-[11px] tracking-wider uppercase">
-        Quick actions
+        {isChinese ? "快捷操作" : "Quick actions"}
       </h2>
       <div className="flex flex-wrap gap-1.5">
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <ActionPill key={action.label} action={action} />
         ))}
       </div>

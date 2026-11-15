@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { LoginForm } from "@/components/auth";
 import type { Locale } from "@/i18n";
@@ -10,9 +11,10 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth" });
   return pageMetadata({
-    title: "Sign in",
-    description: "Sign in to your workspace.",
+    title: t("login"),
+    description: locale === "zh" ? "登录到你的 ShopAgent 工作台。" : "Sign in to your workspace.",
     path: "/login",
     locale,
     noindex: true,

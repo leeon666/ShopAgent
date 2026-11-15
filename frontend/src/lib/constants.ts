@@ -1,5 +1,5 @@
-export const APP_NAME = "shopagent_v2";
-export const APP_DESCRIPTION = "A FastAPI project";
+export const APP_NAME = "ShopAgent";
+export const APP_DESCRIPTION = "商城订单与售后 Agent 平台";
 
 export const API_ROUTES = {
   LOGIN: "/auth/login",

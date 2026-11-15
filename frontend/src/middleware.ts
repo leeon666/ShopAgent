@@ -7,8 +7,8 @@ export default createMiddleware({
   // Don't prefix the default locale (e.g., /about instead of /en/about)
   localePrefix: "as-needed",
 
-  // Always serve `defaultLocale` (en) at root, regardless of the visitor's
-  // Accept-Language header. The user opts into Polish via the LanguageSwitcher.
+  // Always serve Simplified Chinese at root, regardless of the visitor's
+  // Accept-Language header. English and Polish remain available explicitly.
   localeDetection: false,
 });
 

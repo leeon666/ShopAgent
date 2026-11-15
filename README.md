@@ -89,6 +89,9 @@ docker compose -f docker-compose.dev.yml exec -T app shopagent_v2 cmd rag-ingest
 访问：
 
 - 售后工作台：<http://localhost:3000/shop>
+- 简体中文：<http://localhost:3000/>
+- English：<http://localhost:3000/en>
+- Polski：<http://localhost:3000/pl>
 - API 文档：<http://localhost:8000/docs>
 - Flower：<http://localhost:5555>
 - Prometheus 指标：<http://localhost:8000/metrics>

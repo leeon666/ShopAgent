@@ -16,10 +16,10 @@ import { defaultLocale, locales } from "@/i18n";
 export const SITE = {
   name: APP_NAME,
   /** Tagline used in title templates + OG defaults. */
-  tagline: "AI assistant for modern teams",
+  tagline: "面向真实业务的售后 Agent 平台",
   /** One-paragraph default description (≤160 chars for SERP truncation). */
   description:
-    "Plug in your docs, your tools, and your data. Ask anything — get answers grounded in everything your team has ever shipped.",
+    "商城订单、售后政策、Agent 工具调用与人工审批运行在同一套真实业务流程中。",
   /** Canonical absolute origin. NO trailing slash. */
   url:
     (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") as string | undefined) ??
@@ -46,6 +46,7 @@ export const SITE = {
 
 /** Map our locale codes → BCP-47 / Open Graph locale strings. */
 export const OG_LOCALE: Record<(typeof locales)[number], string> = {
+  zh: "zh_CN",
   en: "en_US",
   pl: "pl_PL",
 };
@@ -68,13 +69,15 @@ interface PageMetaInput {
 export function pageMetadata(input: PageMetaInput): Metadata {
   const locale = input.locale ?? SITE.defaultLocale;
   const path = normalizePath(input.path ?? "/");
-  const localizedPath = path === "/" ? `/${locale}` : `/${locale}${path}`;
+  const localizedPath =
+    locale === SITE.defaultLocale ? path : path === "/" ? `/${locale}` : `/${locale}${path}`;
   const canonical = `${SITE.url}${localizedPath}`;
-  const title = input.title === SITE.name ? SITE.name : `${input.title} | ${SITE.name}`;
+  const resolvedTitle = input.title === SITE.name ? SITE.name : `${input.title} | ${SITE.name}`;
+  const documentTitle = { absolute: resolvedTitle };
   const ogImageUrl = input.ogImage ?? `${SITE.url}/opengraph-image`;
 
   return {
-    title,
+    title: documentTitle,
     description: input.description,
     keywords: [...SITE.keywords],
     alternates: {
@@ -82,12 +85,14 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       languages: Object.fromEntries(
         SITE.locales.map((loc) => [
           loc,
-          `${SITE.url}${path === "/" ? `/${loc}` : `/${loc}${path}`}`,
+          loc === SITE.defaultLocale
+            ? `${SITE.url}${path}`
+            : `${SITE.url}${path === "/" ? `/${loc}` : `/${loc}${path}`}`,
         ]),
       ),
     },
     openGraph: {
-      title,
+      title: resolvedTitle,
       description: input.description,
       url: canonical,
       siteName: SITE.name,
@@ -105,7 +110,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: resolvedTitle,
       description: input.description,
       images: [ogImageUrl],
       ...(SITE.twitter ? { site: SITE.twitter, creator: SITE.twitter } : {}),

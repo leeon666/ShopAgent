@@ -1,8 +1,8 @@
 import { getRequestConfig } from "next-intl/server";
-export const locales = ["en", "pl"] as const;
+export const locales = ["zh", "en", "pl"] as const;
 export type Locale = (typeof locales)[number];
 
-export const defaultLocale: Locale = "en";
+export const defaultLocale: Locale = "zh";
 
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
@@ -19,6 +19,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
 export function getLocaleLabel(locale: Locale): string {
   const labels: Record<Locale, string> = {
+    zh: "简体中文",
     en: "English",
     pl: "Polski",
   };
@@ -27,6 +28,7 @@ export function getLocaleLabel(locale: Locale): string {
 
 export function getLocaleFlag(locale: Locale): string {
   const flags: Record<Locale, string> = {
+    zh: "🇨🇳",
     en: "🇬🇧",
     pl: "🇵🇱",
   };

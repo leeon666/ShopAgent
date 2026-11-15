@@ -32,8 +32,8 @@ function buildLocalizedPath(pathname: string, newLocale: Locale): string {
 }
 
 /**
- * Default language switcher — segmented pills (EN | PL).
- * Used in the dashboard footer / settings, where space allows two buttons.
+ * Default language switcher — segmented pills (ZH | EN | PL).
+ * Used in the dashboard footer / settings, where space allows three buttons.
  */
 export function LanguageSwitcher() {
   const locale = useLocale();

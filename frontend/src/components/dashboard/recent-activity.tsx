@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { Coins, MessageSquare, Receipt, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -36,6 +37,7 @@ interface CreditTx {
 }
 
 export function RecentActivity({ limit = 6 }: { limit?: number }) {
+  const isChinese = useLocale() === "zh";
   const [items, setItems] = useState<ActivityItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,8 +57,8 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
           events.push({
             id: `conv-${c.id}`,
             icon: MessageSquare,
-            title: c.title?.trim() || "New conversation",
-            description: "Conversation",
+            title: c.title?.trim() || (isChinese ? "新对话" : "New conversation"),
+            description: isChinese ? "对话" : "Conversation",
             timestamp: c.updated_at || c.created_at,
             href: `${ROUTES.CHAT}?id=${c.id}`,
           });
@@ -84,7 +86,7 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
       events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setItems(events.slice(0, limit));
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load activity"));
+      setError(getErrorMessage(err, isChinese ? "加载最近动态失败" : "Failed to load activity"));
     }
   };
 
@@ -96,29 +98,35 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
   return (
     <div className="border-border bg-card flex h-full flex-col rounded-xl border p-5 lg:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-foreground text-base font-semibold">Recent activity</h2>
+        <h2 className="font-display text-foreground text-base font-semibold">
+          {isChinese ? "最近动态" : "Recent activity"}
+        </h2>
         <Link
           href={ROUTES.CHAT}
           className="text-foreground/55 hover:text-foreground font-mono text-[11px] tracking-wider uppercase"
         >
-          View all →
+          {isChinese ? "查看全部 →" : "View all →"}
         </Link>
       </div>
 
       {items === null && !error && <LoadingState variant="skeleton-list" rows={4} />}
       {error && (
         <ErrorState
-          title="Couldn't load activity"
+          title={isChinese ? "无法加载最近动态" : "Couldn't load activity"}
           description={error}
-          cta={{ label: "Retry", onClick: load }}
+          cta={{ label: isChinese ? "重试" : "Retry", onClick: load }}
         />
       )}
       {items && items.length === 0 && !error && (
         <EmptyState
           icon={MessageSquare}
-          title="Nothing yet"
-          description="Start a chat or upload a document — recent events will appear here."
-          cta={{ label: "Start a chat", href: ROUTES.CHAT }}
+          title={isChinese ? "暂无动态" : "Nothing yet"}
+          description={
+            isChinese
+              ? "开始聊天或上传文档后，最近事件会显示在这里。"
+              : "Start a chat or upload a document — recent events will appear here."
+          }
+          cta={{ label: isChinese ? "开始聊天" : "Start a chat", href: ROUTES.CHAT }}
           fill
         />
       )}
