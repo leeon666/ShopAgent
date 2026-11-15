@@ -57,6 +57,14 @@ docker compose -f docker-compose.dev.yml exec -T redis `
 
 只用于本地开发，不要在生产环境通过清 Redis 绕过限流。
 
+### 全量 pytest 后账号和订单消失
+
+模板的 `tests/test_migrations.py` 会在检测到 live PostgreSQL 时执行
+`alembic downgrade base`，从而清空正在使用的开发数据库。
+
+修复：破坏性迁移测试改为显式开关 `RUN_DESTRUCTIVE_MIGRATION_TESTS=1`，
+默认跳过。运行迁移测试时必须使用独立的 `shopagent_v2_test` 数据库。
+
 ## 已实证的闭环
 
 1. DeepSeek `deepseek-flash` 可访问，并返回 Token usage。

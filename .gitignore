@@ -110,3 +110,5 @@ Thumbs.db
 # Project specific
 models_cache/
 data/evaluation/results/*.tmp
+docs/demo/raw/
+docs/demo/login-failure.png

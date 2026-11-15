@@ -6,6 +6,7 @@ These tests ensure that:
 3. The upgrade/downgrade cycle is idempotent
 """
 
+import os
 import subprocess
 import sys
 
@@ -34,10 +35,19 @@ def _db_available() -> bool:
         engine.dispose()
 
 
-pytestmark = pytest.mark.skipif(
-    not _db_available(),
-    reason="No live database available — skipping migration tests",
-)
+pytestmark = [
+    pytest.mark.skipif(
+        not _db_available(),
+        reason="No live database available — skipping migration tests",
+    ),
+    pytest.mark.skipif(
+        os.getenv("RUN_DESTRUCTIVE_MIGRATION_TESTS") != "1",
+        reason=(
+            "Destructive migration tests are opt-in. Point POSTGRES_DB at a dedicated "
+            "test database and set RUN_DESTRUCTIVE_MIGRATION_TESTS=1."
+        ),
+    ),
+]
 
 
 class TestMigrations:

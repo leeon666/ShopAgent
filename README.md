@@ -66,6 +66,9 @@ FastAPI API + AgentSession
 
 更详细的设计、关键取舍和面试讲解见 [docs/SHOPAGENT.md](docs/SHOPAGENT.md)。
 
+真实页面录制：[两分钟 ShopAgent 演示](docs/demo/shopagent-demo.mp4)，
+关键页面截图：[售后工作台](docs/demo/shopagent-workbench.png)。
+
 ## Windows 一键启动
 
 前置条件：Docker Desktop 正常运行。项目不再依赖 `make`。
@@ -138,6 +141,14 @@ npm install
 npm run lint
 npm run type-check
 npm run build
+```
+
+`pytest` 默认不会执行会 `downgrade base` 的迁移测试，避免清空本地演示库。迁移测试必须显式开启，并应指向独立测试数据库：
+
+```powershell
+$env:POSTGRES_DB="shopagent_v2_test"
+$env:RUN_DESTRUCTIVE_MIGRATION_TESTS="1"
+uv run pytest -q tests/test_migrations.py
 ```
 
 测试基础设施已覆盖模板原有能力，并新增：
