@@ -340,13 +340,16 @@ export function ShopWorkbench() {
         <Metric icon={Sparkles} label="Agent 工具" value={8} note="查询、RAG、提案" />
       </div>
 
-      <div className="order-1 grid gap-4 xl:order-2 xl:min-h-[640px] xl:grid-cols-[310px_minmax(0,1fr)_430px]">
-        <Card className="min-h-0 shrink-0 overflow-hidden p-0">
+      <div
+        data-testid="shop-workbench-grid"
+        className="order-1 grid gap-4 xl:order-2 xl:h-[clamp(560px,calc(100vh-18rem),760px)] xl:grid-cols-[310px_minmax(0,1fr)_430px]"
+      >
+        <Card className="flex h-[580px] min-h-0 min-w-0 shrink-0 flex-col overflow-hidden p-0 xl:h-full">
           <div className="border-border border-b px-4 py-3">
             <p className="text-sm font-semibold">业务对象</p>
             <p className="text-muted-foreground mt-1 text-xs">先选订单，再选关联售后单</p>
           </div>
-          <div className="max-h-[580px] scrollbar-thin overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 scrollbar-thin overflow-y-auto p-2">
             {orders.map((order) => {
               const relatedTickets = tickets.filter((ticket) => ticket.order_id === order.id);
               const active = order.id === selectedOrder?.id;
@@ -389,7 +392,7 @@ export function ShopWorkbench() {
           </div>
         </Card>
 
-        <Card className="min-h-0 shrink-0 overflow-hidden p-0">
+        <Card className="flex h-[580px] min-h-0 min-w-0 shrink-0 flex-col overflow-hidden p-0 xl:h-full">
           <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
             <div>
               <p className="text-sm font-semibold">订单与工单上下文</p>
@@ -401,7 +404,7 @@ export function ShopWorkbench() {
               <Sparkles className="h-4 w-4" />让 Agent 研判
             </Button>
           </div>
-          <div className="max-h-[580px] scrollbar-thin space-y-4 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 scrollbar-thin space-y-4 overflow-y-auto p-4">
             {selectedOrder ? (
               <>
                 <section>
@@ -579,7 +582,10 @@ export function ShopWorkbench() {
           </div>
         </Card>
 
-        <Card className="flex min-h-[640px] min-w-0 shrink-0 flex-col overflow-hidden p-0">
+        <Card
+          data-testid="shop-agent-panel"
+          className="flex h-[640px] min-w-0 shrink-0 flex-col overflow-hidden p-0 xl:h-full"
+        >
           <div className="border-border border-b px-4 py-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
