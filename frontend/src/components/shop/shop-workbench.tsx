@@ -56,6 +56,14 @@ interface Proposal {
   id: string;
   proposal_no: string;
   ticket_id: string;
+  ticket_no?: string | null;
+  ticket_type?: string | null;
+  ticket_status?: string | null;
+  ticket_reason?: string | null;
+  order_id?: string | null;
+  order_no?: string | null;
+  user_id: string;
+  user_email?: string | null;
   recommended_action: string;
   refund_amount: string | null;
   rationale: string;
@@ -194,6 +202,7 @@ export function ShopWorkbench() {
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
 
   const ordersQuery = useQuery({
     queryKey: ["shop", "orders"],
@@ -237,6 +246,10 @@ export function ShopWorkbench() {
   const selectedTicket = useMemo(
     () => orderTickets.find((ticket) => ticket.id === selectedTicketId) ?? orderTickets[0] ?? null,
     [orderTickets, selectedTicketId],
+  );
+  const selectedProposal = useMemo(
+    () => proposals.find((proposal) => proposal.id === selectedProposalId) ?? proposals[0] ?? null,
+    [proposals, selectedProposalId],
   );
 
   const payMutation = useMutation({
@@ -307,8 +320,9 @@ export function ShopWorkbench() {
             同一套业务数据里查看订单、工单、Agent 证据与退款提案。高风险动作只能由人工审批。
           </p>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs">
-            使用方式：先点选左侧订单，再点“让 Agent
-            研判”。无需自己编写专业提示词，系统会自动带入订单和工单信息。
+            {admin
+              ? "管理员使用方式：从左侧待审批队列选择提案，核对关联工单、订单和证据后批准或拒绝。"
+              : "使用方式：先点选左侧订单，再点“让 Agent 研判”。无需自己编写专业提示词，系统会自动带入订单和工单信息。"}
           </p>
         </div>
         <Button
@@ -346,45 +360,81 @@ export function ShopWorkbench() {
       >
         <Card className="flex h-[580px] min-h-0 min-w-0 shrink-0 flex-col overflow-hidden p-0 xl:h-full">
           <div className="border-border border-b px-4 py-3">
-            <p className="text-sm font-semibold">业务对象</p>
-            <p className="text-muted-foreground mt-1 text-xs">先选订单，再选关联售后单</p>
+            <p className="text-sm font-semibold">{admin ? "待审批队列" : "业务对象"}</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {admin ? "所有用户提交的高风险售后提案" : "先选订单，再选关联售后单"}
+            </p>
           </div>
           <div className="min-h-0 flex-1 scrollbar-thin overflow-y-auto p-2">
-            {orders.map((order) => {
-              const relatedTickets = tickets.filter((ticket) => ticket.order_id === order.id);
-              const active = order.id === selectedOrder?.id;
-              return (
-                <button
-                  key={order.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedOrderId(order.id);
-                    setSelectedTicketId(relatedTickets[0]?.id ?? null);
-                  }}
-                  className={cn(
-                    "mb-2 w-full rounded-xl border p-3 text-left transition-colors",
-                    active
-                      ? "border-foreground/30 bg-accent"
-                      : "hover:bg-accent/60 border-transparent",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px]">{order.order_no}</span>
-                    <Badge className={STATUS_TONE[order.status] ?? ""}>
-                      {statusLabel(order.status, isChinese)}
-                    </Badge>
-                  </div>
-                  <p className="mt-2 truncate text-sm font-medium">
-                    {order.items.map((item) => item.product_name).join(" + ")}
-                  </p>
-                  <div className="text-muted-foreground mt-1 flex justify-between text-xs">
-                    <span>¥{order.total_amount}</span>
-                    <span>{relatedTickets.length} 个售后单</span>
-                  </div>
-                </button>
-              );
-            })}
-            {!orders.length && !ordersQuery.isLoading && (
+            {admin
+              ? proposals.map((proposal) => {
+                  const active = proposal.id === selectedProposal?.id;
+                  return (
+                    <button
+                      key={proposal.id}
+                      type="button"
+                      onClick={() => setSelectedProposalId(proposal.id)}
+                      className={cn(
+                        "mb-2 w-full rounded-xl border p-3 text-left transition-colors",
+                        active
+                          ? "border-foreground/30 bg-accent"
+                          : "hover:bg-accent/60 border-transparent",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px]">{proposal.proposal_no}</span>
+                        <Badge>{actionLabel(proposal.recommended_action, isChinese)}</Badge>
+                      </div>
+                      <p className="text-foreground mt-2 truncate text-sm font-medium">
+                        {proposal.ticket_no || proposal.ticket_id}
+                      </p>
+                      <div className="text-muted-foreground mt-1 flex justify-between gap-2 text-xs">
+                        <span className="truncate">{proposal.user_email || proposal.user_id}</span>
+                        <span>
+                          {proposal.refund_amount ? `¥${proposal.refund_amount}` : "未指定金额"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              : orders.map((order) => {
+                  const relatedTickets = tickets.filter((ticket) => ticket.order_id === order.id);
+                  const active = order.id === selectedOrder?.id;
+                  return (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
+                        setSelectedTicketId(relatedTickets[0]?.id ?? null);
+                      }}
+                      className={cn(
+                        "mb-2 w-full rounded-xl border p-3 text-left transition-colors",
+                        active
+                          ? "border-foreground/30 bg-accent"
+                          : "hover:bg-accent/60 border-transparent",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px]">{order.order_no}</span>
+                        <Badge className={STATUS_TONE[order.status] ?? ""}>
+                          {statusLabel(order.status, isChinese)}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 truncate text-sm font-medium">
+                        {order.items.map((item) => item.product_name).join(" + ")}
+                      </p>
+                      <div className="text-muted-foreground mt-1 flex justify-between text-xs">
+                        <span>¥{order.total_amount}</span>
+                        <span>{relatedTickets.length} 个售后单</span>
+                      </div>
+                    </button>
+                  );
+                })}
+            {admin && !proposals.length && !proposalsQuery.isLoading && (
+              <p className="text-muted-foreground p-4 text-sm">暂无待审批提案。</p>
+            )}
+            {!admin && !orders.length && !ordersQuery.isLoading && (
               <p className="text-muted-foreground p-4 text-sm">
                 暂无订单。运行 seed-shop 或先创建订单。
               </p>
@@ -395,17 +445,35 @@ export function ShopWorkbench() {
         <Card className="flex h-[580px] min-h-0 min-w-0 shrink-0 flex-col overflow-hidden p-0 xl:h-full">
           <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
             <div>
-              <p className="text-sm font-semibold">订单与工单上下文</p>
+              <p className="text-sm font-semibold">
+                {admin ? "待审批提案详情" : "订单与工单上下文"}
+              </p>
               <p className="text-muted-foreground mt-1 text-xs">
-                Agent 只能读取当前用户的订单与工单
+                {admin
+                  ? "核对客户、订单、工单和 Agent 证据后再作决定"
+                  : "Agent 只能读取当前用户的订单与工单"}
               </p>
             </div>
-            <Button onClick={askAgent} disabled={!selectedOrder}>
-              <Sparkles className="h-4 w-4" />让 Agent 研判
-            </Button>
+            {!admin && (
+              <Button onClick={askAgent} disabled={!selectedOrder}>
+                <Sparkles className="h-4 w-4" />让 Agent 研判
+              </Button>
+            )}
           </div>
           <div className="min-h-0 flex-1 scrollbar-thin space-y-4 overflow-y-auto p-4">
-            {selectedOrder ? (
+            {admin && selectedProposal ? (
+              <AdminProposalReview
+                proposal={selectedProposal}
+                isChinese={isChinese}
+                onDecision={(decision) =>
+                  decisionMutation.mutate({
+                    proposalId: selectedProposal.id,
+                    decision,
+                  })
+                }
+                deciding={decisionMutation.isPending}
+              />
+            ) : selectedOrder ? (
               <>
                 <section>
                   <div className="flex items-center justify-between">
@@ -560,7 +628,8 @@ export function ShopWorkbench() {
                                   : "bg-red-500/10 text-red-700",
                               )}
                             >
-                              {toolLabel(step.tool_name || step.node, isChinese)} · {step.latency_ms}ms
+                              {toolLabel(step.tool_name || step.node, isChinese)} ·{" "}
+                              {step.latency_ms}ms
                             </span>
                           ))}
                         </div>
@@ -576,7 +645,7 @@ export function ShopWorkbench() {
               </>
             ) : (
               <div className="text-muted-foreground flex h-full min-h-80 items-center justify-center text-sm">
-                {loading ? "正在加载业务数据..." : "暂无订单数据"}
+                {loading ? "正在加载业务数据..." : admin ? "暂无待审批提案" : "暂无订单数据"}
               </div>
             )}
           </div>
@@ -600,6 +669,117 @@ export function ShopWorkbench() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function AdminProposalReview({
+  proposal,
+  isChinese,
+  onDecision,
+  deciding,
+}: {
+  proposal: Proposal;
+  isChinese: boolean;
+  onDecision: (decision: "approve" | "reject") => void;
+  deciding: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <section className="border-border bg-muted/30 rounded-xl border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-mono text-xs font-semibold">{proposal.proposal_no}</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {proposal.user_email || proposal.user_id}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Badge>{actionLabel(proposal.recommended_action, isChinese)}</Badge>
+            <Badge className={STATUS_TONE[proposal.status] ?? ""}>
+              {statusLabel(proposal.status, isChinese)}
+            </Badge>
+          </div>
+        </div>
+
+        <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">售后工单</dt>
+            <dd className="text-foreground mt-0.5 font-mono">
+              {proposal.ticket_no || proposal.ticket_id}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">关联订单</dt>
+            <dd className="text-foreground mt-0.5 font-mono">
+              {proposal.order_no || proposal.order_id || "未提供"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">工单类型</dt>
+            <dd className="text-foreground mt-0.5">{proposal.ticket_type || "未提供"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">退款金额</dt>
+            <dd className="text-foreground mt-0.5 font-medium">
+              {proposal.refund_amount ? `¥${proposal.refund_amount}` : "未指定"}
+            </dd>
+          </div>
+        </dl>
+
+        {proposal.ticket_reason && (
+          <div className="border-border mt-4 border-t pt-3">
+            <p className="text-muted-foreground text-xs">客户描述</p>
+            <p className="text-foreground mt-1 text-sm leading-relaxed">{proposal.ticket_reason}</p>
+          </div>
+        )}
+      </section>
+
+      <section className="border-border bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
+        <p className="text-muted-foreground text-xs">
+          批准后由后台任务处理退款；Agent 不会直接执行资金操作。
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => onDecision("reject")} disabled={deciding}>
+            拒绝
+          </Button>
+          <Button onClick={() => onDecision("approve")} disabled={deciding}>
+            {deciding ? "处理中…" : "批准"}
+          </Button>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
+          Agent 处理依据
+        </h3>
+        <p className="text-foreground mt-2 text-sm leading-relaxed">{proposal.rationale}</p>
+      </section>
+
+      {proposal.evidence.length > 0 && (
+        <section>
+          <h3 className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
+            证据与引用
+          </h3>
+          <ul className="mt-2 space-y-2">
+            {proposal.evidence.map((evidence, index) => (
+              <li
+                key={`${evidence.source || "evidence"}-${index}`}
+                className="border-border rounded-xl border p-3"
+              >
+                <p className="text-foreground font-mono text-[11px] font-medium">
+                  {evidence.source || `证据 ${index + 1}`}
+                </p>
+                {evidence.quote && (
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {evidence.quote}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

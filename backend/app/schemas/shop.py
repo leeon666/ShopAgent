@@ -60,7 +60,9 @@ class OrderList(BaseSchema):
 
 class TicketCreate(BaseSchema):
     order_id: UUID
-    type: str = Field(default="refund", pattern=r"^(refund|return|exchange|damage|logistics|other)$")
+    type: str = Field(
+        default="refund", pattern=r"^(refund|return|exchange|damage|logistics|other)$"
+    )
     reason: str = Field(default="", max_length=10_000)
 
 
@@ -119,7 +121,14 @@ class ProposalRead(BaseSchema, TimestampSchema):
     id: UUID
     proposal_no: str
     ticket_id: UUID
+    ticket_no: str | None = None
+    ticket_type: str | None = None
+    ticket_status: str | None = None
+    ticket_reason: str | None = None
+    order_id: UUID | None = None
+    order_no: str | None = None
     user_id: UUID
+    user_email: str | None = None
     recommended_action: str
     refund_amount: Decimal | None
     rationale: str

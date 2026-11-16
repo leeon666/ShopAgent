@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AlreadyExistsError, BadRequestError, NotFoundError
@@ -18,6 +19,7 @@ from app.db.models.shop import (
     OrderItem,
     Product,
 )
+from app.db.models.user import User
 from app.repositories import shop as shop_repo
 from app.schemas.shop import OrderCreate, ProductCreate, ProposalCreate, TicketCreate
 from app.services.shop_state import transition_order, transition_ticket
@@ -228,6 +230,58 @@ class ShopService:
             self.db, status=status, user_id=user_id, skip=skip, limit=limit
         )
 
+    async def proposal_context_map(
+        self, proposals: list[ActionProposal]
+    ) -> dict[UUID, dict[str, object]]:
+        """Load ticket, order, and customer context for review queues."""
+        if not proposals:
+            return {}
+        ticket_ids = {proposal.ticket_id for proposal in proposals}
+        tickets = list(
+            (
+                await self.db.execute(
+                    select(AfterSalesTicket).where(AfterSalesTicket.id.in_(ticket_ids))
+                )
+            )
+            .scalars()
+            .all()
+        )
+        ticket_map = {ticket.id: ticket for ticket in tickets}
+
+        order_ids = {ticket.order_id for ticket in tickets}
+        orders = (
+            list(
+                (await self.db.execute(select(Order).where(Order.id.in_(order_ids))))
+                .scalars()
+                .all()
+            )
+            if order_ids
+            else []
+        )
+        order_map = {order.id: order for order in orders}
+
+        user_ids = {proposal.user_id for proposal in proposals}
+        users = list(
+            (await self.db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()
+        )
+        user_map = {user.id: user for user in users}
+
+        contexts: dict[UUID, dict[str, object]] = {}
+        for proposal in proposals:
+            ticket = ticket_map.get(proposal.ticket_id)
+            order = order_map.get(ticket.order_id) if ticket else None
+            user = user_map.get(proposal.user_id)
+            contexts[proposal.id] = {
+                "ticket_no": ticket.ticket_no if ticket else None,
+                "ticket_type": ticket.type if ticket else None,
+                "ticket_status": ticket.status if ticket else None,
+                "ticket_reason": ticket.reason if ticket else None,
+                "order_id": order.id if order else None,
+                "order_no": order.order_no if order else None,
+                "user_email": user.email if user else None,
+            }
+        return contexts
+
     async def get_proposal(self, *, proposal_id: UUID, user_id: UUID) -> ActionProposal:
         proposal = await shop_repo.get_proposal(self.db, proposal_id, user_id=user_id)
         if proposal is None:
@@ -300,9 +354,7 @@ class ShopService:
         skip: int,
         limit: int,
     ) -> tuple[list[AgentRun], int]:
-        return await shop_repo.list_agent_runs(
-            self.db, user_id=user_id, skip=skip, limit=limit
-        )
+        return await shop_repo.list_agent_runs(self.db, user_id=user_id, skip=skip, limit=limit)
 
     async def agent_steps(self, run_id: UUID) -> list[AgentStep]:
         return await shop_repo.list_agent_steps(self.db, run_id)

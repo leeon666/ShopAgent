@@ -99,6 +99,17 @@ async def _run_payload(service: ShopService, run: AgentRun) -> dict[str, Any]:
     }
 
 
+async def _proposal_payloads(
+    service: ShopService, proposals: list[ActionProposal]
+) -> list[ProposalRead]:
+    contexts = await service.proposal_context_map(proposals)
+    payloads: list[ProposalRead] = []
+    for proposal in proposals:
+        base = ProposalRead.model_validate(proposal).model_dump()
+        payloads.append(ProposalRead.model_validate({**base, **contexts.get(proposal.id, {})}))
+    return payloads
+
+
 @router.get("/products", response_model=ProductList)
 async def list_products(
     service: ShopSvc,
@@ -106,7 +117,9 @@ async def list_products(
     limit: int = Query(50, ge=1, le=100),
 ) -> Any:
     products, total = await service.list_products(skip=skip, limit=limit)
-    return ProductList(items=[ProductRead.model_validate(product) for product in products], total=total)
+    return ProductList(
+        items=[ProductRead.model_validate(product) for product in products], total=total
+    )
 
 
 @router.post("/products", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
@@ -132,9 +145,7 @@ async def list_orders(
 async def create_order(
     data: OrderCreate, service: ShopSvc, user: CurrentUser, request: Request
 ) -> Any:
-    order = await service.create_order(
-        user_id=user.id, data=data, request_id=_request_id(request)
-    )
+    order = await service.create_order(user_id=user.id, data=data, request_id=_request_id(request))
     return OrderRead.model_validate(await _order_payload(service, order))
 
 
@@ -145,9 +156,7 @@ async def get_order(order_id: UUID, service: ShopSvc, user: CurrentUser) -> Any:
 
 
 @router.post("/orders/{order_id}/pay", response_model=OrderRead)
-async def pay_order(
-    order_id: UUID, service: ShopSvc, user: CurrentUser, request: Request
-) -> Any:
+async def pay_order(order_id: UUID, service: ShopSvc, user: CurrentUser, request: Request) -> Any:
     order = await service.mark_paid(
         order_id=order_id, user_id=user.id, request_id=_request_id(request)
     )
@@ -163,7 +172,9 @@ async def list_tickets(
 ) -> Any:
     tickets, total = await service.list_tickets(user_id=user.id, skip=skip, limit=limit)
     return TicketList(
-        items=[TicketRead.model_validate(await _ticket_payload(service, ticket)) for ticket in tickets],
+        items=[
+            TicketRead.model_validate(await _ticket_payload(service, ticket)) for ticket in tickets
+        ],
         total=total,
     )
 
@@ -216,15 +227,13 @@ async def list_my_proposals(
         limit=limit,
     )
     return ProposalList(
-        items=[ProposalRead.model_validate(proposal) for proposal in proposals],
+        items=await _proposal_payloads(service, proposals),
         total=total,
     )
 
 
 @router.get("/proposals/{proposal_id}", response_model=ProposalRead)
-async def get_my_proposal(
-    proposal_id: UUID, service: ShopSvc, user: CurrentUser
-) -> ActionProposal:
+async def get_my_proposal(proposal_id: UUID, service: ShopSvc, user: CurrentUser) -> ActionProposal:
     return await service.get_proposal(proposal_id=proposal_id, user_id=user.id)
 
 
@@ -243,7 +252,7 @@ async def list_proposals_for_review(
         limit=limit,
     )
     return ProposalList(
-        items=[ProposalRead.model_validate(proposal) for proposal in proposals],
+        items=await _proposal_payloads(service, proposals),
         total=total,
     )
 
