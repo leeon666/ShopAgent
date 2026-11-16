@@ -9,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { apiClient } from "@/lib/api-client";
 import { ROUTES } from "@/lib/constants";
-import { cn, getErrorMessage, timeAgo } from "@/lib/utils";
+import { cn, getErrorMessage, timeAgo, uiText } from "@/lib/utils";
 
 interface ActivityItem {
   id: string;
@@ -74,8 +74,14 @@ export function RecentActivity({ limit = 6 }: { limit?: number }) {
             title:
               tx.description ||
               (isPositive
-                ? `+${tx.delta.toLocaleString()} credits`
-                : `${tx.delta.toLocaleString()} credits`),
+                ? uiText(
+                    `+${tx.delta.toLocaleString()} 额度`,
+                    `+${tx.delta.toLocaleString()} credits`,
+                  )
+                : uiText(
+                    `${tx.delta.toLocaleString()} 额度`,
+                    `${tx.delta.toLocaleString()} credits`,
+                  )),
             description: humanizeTxType(tx.type),
             timestamp: tx.created_at,
             accent: isPositive ? "brand" : tx.delta < 0 ? "default" : "default",
@@ -179,8 +185,14 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   return content;
 }
 
-
 function humanizeTxType(t: string): string {
-  return t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  return uiText(
+    {
+      subscription_renewal: "订阅续费",
+      purchase: "额度购买",
+      usage: "使用消耗",
+      refund: "退款",
+    }[t] ?? t.replace(/_/g, " "),
+    t.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+  );
 }
-

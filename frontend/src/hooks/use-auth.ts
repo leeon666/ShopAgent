@@ -9,7 +9,7 @@ import { apiClient, ApiError } from "@/lib/api-client";
 import type { User, LoginRequest, RegisterRequest } from "@/types";
 import { ROUTES } from "@/lib/constants";
 import { defaultLocale } from "@/i18n";
-import { isAppAdmin } from "@/lib/utils";
+import { isAppAdmin, uiText } from "@/lib/utils";
 
 // Session-level singletons so /auth/me runs ONCE per page load no matter how
 // many components mount useAuth(). Concurrent mounts share the in-flight
@@ -117,10 +117,10 @@ export function useAuth() {
       authCheckPromise = null;
       stopTokenRefresh();
       logout();
-      toast.success("Logged out");
-      router.push(ROUTES.LOGIN);
+      toast.success(uiText("已退出登录", "Logged out"));
+      router.push(locale === defaultLocale ? ROUTES.LOGIN : `/${locale}${ROUTES.LOGIN}`);
     }
-  }, [logout, router]);
+  }, [locale, logout, router]);
 
   const refreshToken = useCallback(async () => {
     try {
@@ -134,11 +134,11 @@ export function useAuth() {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout();
-        router.push(ROUTES.LOGIN);
+        router.push(locale === defaultLocale ? ROUTES.LOGIN : `/${locale}${ROUTES.LOGIN}`);
       }
       return false;
     }
-  }, [logout, router, setUser]);
+  }, [locale, logout, router, setUser]);
 
   return {
     user,

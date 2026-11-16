@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 import { X } from "lucide-react";
 
 interface SheetProps {
@@ -93,7 +93,7 @@ export function SheetClose({ onClick, className }: { onClick: () => void; classN
       )}
     >
       <X className="h-5 w-5" />
-      <span className="sr-only">Close</span>
+      <span className="sr-only">{uiText("关闭", "Close")}</span>
     </button>
   );
 }

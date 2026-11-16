@@ -1,5 +1,7 @@
 "use client";
 
+import { uiText } from "@/lib/utils";
+
 export default function GlobalError({
   error,
   reset,
@@ -8,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body style={{ margin: 0, fontFamily: "Inter, system-ui, sans-serif" }}>
         <div
           style={{
@@ -42,7 +44,7 @@ export default function GlobalError({
               letterSpacing: "-0.025em",
             }}
           >
-            Something went wrong
+            {uiText("发生错误", "Something went wrong")}
           </h1>
           <p
             style={{
@@ -51,8 +53,10 @@ export default function GlobalError({
               maxWidth: "28rem",
             }}
           >
-            An unexpected error occurred. Please try again or contact support if the problem
-            persists.
+            {uiText(
+              "发生了意外错误。请重试；如果问题持续存在，请联系技术支持。",
+              "An unexpected error occurred. Please try again or contact support if the problem persists.",
+            )}
           </p>
           {error.digest && (
             <p
@@ -62,7 +66,8 @@ export default function GlobalError({
                 color: "#71717a",
               }}
             >
-              Error ID: {error.digest}
+              {uiText("错误编号：", "Error ID: ")}
+              {error.digest}
             </p>
           )}
           <div style={{ marginTop: "2rem", display: "flex", gap: "0.75rem" }}>
@@ -79,7 +84,7 @@ export default function GlobalError({
                 color: "#fff",
               }}
             >
-              Try again
+              {uiText("重试", "Try again")}
             </button>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
@@ -95,7 +100,7 @@ export default function GlobalError({
                 textDecoration: "none",
               }}
             >
-              Go home
+              {uiText("返回首页", "Go home")}
             </a>
           </div>
         </div>
@@ -103,4 +108,3 @@ export default function GlobalError({
     </html>
   );
 }
-

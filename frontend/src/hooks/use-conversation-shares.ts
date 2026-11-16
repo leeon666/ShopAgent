@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { qk } from "@/lib/query-keys";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, uiText } from "@/lib/utils";
 import type {
   Conversation,
   ConversationListResponse,
@@ -81,7 +81,7 @@ export function useConversationShares() {
         });
         return share;
       } catch (err: unknown) {
-        const message = getErrorMessage(err, "Failed to share");
+        const message = getErrorMessage(err, uiText("共享失败", "Failed to share"));
         setError(message);
         throw err;
       }
@@ -98,7 +98,7 @@ export function useConversationShares() {
           queryKey: qk.conversationShares.list(conversationId),
         });
       } catch (err: unknown) {
-        const message = getErrorMessage(err, "Failed to load shares");
+        const message = getErrorMessage(err, uiText("加载共享信息失败", "Failed to load shares"));
         setError(message);
       }
     },
@@ -118,7 +118,7 @@ export function useConversationShares() {
           queryKey: qk.conversationShares.list(conversationId),
         });
       } catch (err: unknown) {
-        const message = getErrorMessage(err, "Failed to revoke");
+        const message = getErrorMessage(err, uiText("撤销共享失败", "Failed to revoke"));
         setError(message);
         throw err;
       }
@@ -135,7 +135,10 @@ export function useConversationShares() {
           queryKey: qk.conversationShares.sharedWithMe(skip, limit),
         });
       } catch (err: unknown) {
-        const message = getErrorMessage(err, "Failed to load shared");
+        const message = getErrorMessage(
+          err,
+          uiText("加载共享对话失败", "Failed to load shared conversations"),
+        );
         setError(message);
       }
     },

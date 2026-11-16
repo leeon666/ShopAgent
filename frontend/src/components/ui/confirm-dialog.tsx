@@ -13,6 +13,7 @@ import {
 } from "./dialog";
 import { Input } from "./input";
 import { Label } from "./label";
+import { uiText } from "@/lib/utils";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -43,8 +44,8 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel = uiText("确认", "Confirm"),
+  cancelLabel = uiText("取消", "Cancel"),
   destructive,
   confirmText,
   loading,
@@ -69,7 +70,9 @@ export function ConfirmDialog({
         {confirmText && (
           <div className="space-y-1.5">
             <Label htmlFor="confirm-phrase" className="text-muted-foreground text-xs">
-              Type <span className="text-foreground font-mono">{confirmText}</span> to confirm
+              {uiText("输入 ", "Type ")}
+              <span className="text-foreground font-mono">{confirmText}</span>
+              {uiText(" 以确认", " to confirm")}
             </Label>
             <Input
               id="confirm-phrase"

@@ -64,7 +64,7 @@ export default function OpengraphImage() {
             flexWrap: "wrap",
           }}
         >
-          <span>AI&nbsp;that&nbsp;</span>
+          <span>真正&nbsp;理解&nbsp;</span>
           <span
             style={{
               background:
@@ -73,9 +73,9 @@ export default function OpengraphImage() {
               paddingRight: 8,
             }}
           >
-            knows
+            你的业务
           </span>
-          <span>&nbsp;your work.</span>
+          <span>&nbsp;的 AI。</span>
         </div>
       </div>
 
@@ -96,11 +96,10 @@ export default function OpengraphImage() {
             gap: 10,
           }}
         >
-          Get started →
+          立即开始 →
         </div>
       </div>
     </div>,
     { ...size },
   );
 }
-

@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Calendar, Check, Cog, Copy, Database, Plus, Plug } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  Check,
+  Cog,
+  Copy,
+  Database,
+  Plus,
+  Plug,
+} from "lucide-react";
+import { useLocale } from "next-intl";
 
 import {
   Dialog,
@@ -21,7 +32,7 @@ import {
 } from "@/components/ui";
 import { BrandIcon } from "@/components/marketing/brand-icon";
 import type { ConnectorInfo, SyncSourceCreate, SyncSourceRead } from "@/lib/rag-api";
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 interface SyncSourceWizardProps {
   open: boolean;
@@ -88,9 +99,13 @@ export function SyncSourceWizard({
   onClone,
   submitting,
 }: SyncSourceWizardProps) {
+  const isChinese = useLocale() === "zh";
   const [mode, setMode] = useState<Mode>("new");
   const [step, setStep] = useState<Step>("source");
-  const [form, setForm] = useState<SyncSourceCreate>({ ...EMPTY_FORM, collection_name: defaultCollection ?? null });
+  const [form, setForm] = useState<SyncSourceCreate>({
+    ...EMPTY_FORM,
+    collection_name: defaultCollection ?? null,
+  });
   const [cloneSourceId, setCloneSourceId] = useState<string>("");
   const [cloneName, setCloneName] = useState<string>("");
 
@@ -133,7 +148,9 @@ export function SyncSourceWizard({
     if (step === "source") return Boolean(form.connector_type) && Boolean(form.name.trim());
     if (step === "configure") {
       if (!selectedConnector) return false;
-      const required = Object.entries(selectedConnector.config_schema).filter(([, f]) => f.required);
+      const required = Object.entries(selectedConnector.config_schema).filter(
+        ([, f]) => f.required,
+      );
       return required.every(([key]) => {
         const v = form.config[key];
         return v !== undefined && v !== null && v !== "";
@@ -151,7 +168,8 @@ export function SyncSourceWizard({
     }
     if (step === "source") setStep("configure");
     else if (step === "configure") setStep("schedule");
-    else if (step === "schedule") onSubmit({ ...form, collection_name: form.collection_name ?? defaultCollection ?? null });
+    else if (step === "schedule")
+      onSubmit({ ...form, collection_name: form.collection_name ?? defaultCollection ?? null });
   };
 
   const handleBack = () => {
@@ -166,7 +184,7 @@ export function SyncSourceWizard({
       <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="border-foreground/10 border-b px-6 py-4">
           <DialogTitle className="font-display text-base font-semibold">
-            Add sync source
+            {isChinese ? "添加同步数据源" : "Add sync source"}
           </DialogTitle>
 
           {/* Mode toggle — visible on the first step so user can switch between new/clone */}
@@ -183,7 +201,7 @@ export function SyncSourceWizard({
                 )}
               >
                 <Plus className="h-3 w-3" />
-                Create new
+                {isChinese ? "新建数据源" : "Create new"}
               </button>
               <button
                 type="button"
@@ -196,7 +214,7 @@ export function SyncSourceWizard({
                 )}
               >
                 <Copy className="h-3 w-3" />
-                Use existing
+                {isChinese ? "使用已有集成" : "Use existing"}
               </button>
             </div>
           )}
@@ -225,7 +243,13 @@ export function SyncSourceWizard({
                         active || done ? "text-foreground" : "text-foreground/45",
                       )}
                     >
-                      {s.label}
+                      {isChinese
+                        ? {
+                            source: "选择来源",
+                            configure: "配置",
+                            schedule: "调度",
+                          }[s.id]
+                        : s.label}
                     </span>
                     {i < STEPS.length - 1 && (
                       <span
@@ -260,7 +284,12 @@ export function SyncSourceWizard({
                 <ConfigureStep connector={selectedConnector} form={form} setForm={setForm} />
               )}
               {step === "schedule" && (
-                <ScheduleStep collections={collections} form={form} setForm={setForm} defaultCollection={defaultCollection} />
+                <ScheduleStep
+                  collections={collections}
+                  form={form}
+                  setForm={setForm}
+                  defaultCollection={defaultCollection}
+                />
               )}
             </>
           )}
@@ -275,7 +304,7 @@ export function SyncSourceWizard({
               className="text-foreground/65 hover:text-foreground inline-flex items-center gap-1.5 text-sm font-medium"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {isChinese ? "返回" : "Back"}
             </button>
           ) : (
             <button
@@ -283,7 +312,7 @@ export function SyncSourceWizard({
               onClick={() => onOpenChange(false)}
               className="text-foreground/65 hover:text-foreground text-sm font-medium"
             >
-              Cancel
+              {isChinese ? "取消" : "Cancel"}
             </button>
           )}
 
@@ -296,16 +325,28 @@ export function SyncSourceWizard({
             {submitting && isLastStep ? (
               <>
                 <Spinner className="h-3.5 w-3.5" />
-                {mode === "clone" ? "Cloning…" : "Creating…"}
+                {mode === "clone"
+                  ? isChinese
+                    ? "复制中…"
+                    : "Cloning…"
+                  : isChinese
+                    ? "创建中…"
+                    : "Creating…"}
               </>
             ) : isLastStep ? (
               <>
-                {mode === "clone" ? "Use this integration" : "Create source"}
+                {mode === "clone"
+                  ? isChinese
+                    ? "使用此集成"
+                    : "Use this integration"
+                  : isChinese
+                    ? "创建数据源"
+                    : "Create source"}
                 <Check className="h-4 w-4" />
               </>
             ) : (
               <>
-                Continue
+                {isChinese ? "继续" : "Continue"}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -332,12 +373,14 @@ function CloneStep({
   return (
     <div className="space-y-5">
       <p className="text-foreground/65 text-sm">
-        Pick an existing org integration to use in this knowledge base. Its credentials are copied
-        independently &mdash; you can adjust the schedule separately.
+        {uiText(
+          "选择一个已有组织集成用于当前知识库。凭据会被独立复制，调度计划也可以单独调整。",
+          "Pick an existing org integration to use in this knowledge base. Its credentials are copied independently — you can adjust the schedule separately.",
+        )}
       </p>
       <div className="space-y-2">
         <Label className="text-foreground/80 text-xs font-medium tracking-wider uppercase">
-          Org integrations
+          {uiText("组织集成", "Org integrations")}
         </Label>
         <div className="space-y-2">
           {integrations.map((src) => {
@@ -358,7 +401,9 @@ function CloneStep({
                 <span
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                    isSelected ? "bg-brand text-brand-foreground" : "bg-foreground/8 text-foreground",
+                    isSelected
+                      ? "bg-brand text-brand-foreground"
+                      : "bg-foreground/8 text-foreground",
                   )}
                 >
                   {brand ? (
@@ -371,7 +416,9 @@ function CloneStep({
                   <p className="text-foreground text-sm font-semibold">{src.name}</p>
                   <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">
                     {src.connector_type}
-                    {src.collection_name ? ` · ${src.collection_name}` : " · unassigned"}
+                    {src.collection_name
+                      ? ` · ${src.collection_name}`
+                      : uiText(" · 未分配", " · unassigned")}
                   </p>
                 </div>
                 {isSelected && <Check className="text-brand h-4 w-4 shrink-0" />}
@@ -387,11 +434,11 @@ function CloneStep({
             htmlFor="clone-name"
             className="text-foreground/80 text-xs font-medium tracking-wider uppercase"
           >
-            Name for this KB&apos;s copy
+            {uiText("当前知识库中的副本名称", "Name for this KB's copy")}
           </Label>
           <Input
             id="clone-name"
-            placeholder="Leave empty to auto-generate"
+            placeholder={uiText("留空则自动生成", "Leave empty to auto-generate")}
             value={cloneName}
             onChange={(e) => setCloneName(e.target.value)}
             className="h-10 rounded-xl"
@@ -418,11 +465,11 @@ function ConnectorStep({
           htmlFor="source-name"
           className="text-foreground/80 text-xs font-medium tracking-wider uppercase"
         >
-          Source name
+          {uiText("数据源名称", "Source name")}
         </Label>
         <Input
           id="source-name"
-          placeholder="e.g. Engineering docs (S3)"
+          placeholder={uiText("例如：工程文档（S3）", "e.g. Engineering docs (S3)")}
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           className="h-10 rounded-xl"
@@ -431,11 +478,11 @@ function ConnectorStep({
 
       <div className="space-y-2">
         <Label className="text-foreground/80 text-xs font-medium tracking-wider uppercase">
-          Connector
+          {uiText("连接器", "Connector")}
         </Label>
         {connectors.length === 0 ? (
           <p className="border-foreground/10 bg-foreground/[0.03] text-foreground/65 rounded-xl border px-4 py-3 text-sm">
-            No connectors enabled.
+            {uiText("当前没有已启用的连接器。", "No connectors enabled.")}
           </p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -457,7 +504,9 @@ function ConnectorStep({
                   <span
                     className={cn(
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                      isSelected ? "bg-brand text-brand-foreground" : "bg-foreground/8 text-foreground",
+                      isSelected
+                        ? "bg-brand text-brand-foreground"
+                        : "bg-foreground/8 text-foreground",
                     )}
                   >
                     {brand ? (
@@ -499,8 +548,9 @@ function ConfigureStep({
       <div className="border-foreground/10 bg-foreground/[0.03] rounded-xl border p-5 text-center">
         <Cog className="text-foreground/45 mx-auto h-6 w-6" />
         <p className="text-foreground/70 mt-3 text-sm">
-          No additional configuration needed for{" "}
-          <span className="text-foreground font-medium">{connector.name}</span>.
+          {uiText("无需为", "No additional configuration needed for ")}
+          <span className="text-foreground font-medium">{connector.name}</span>
+          {uiText(" 进行额外配置。", ".")}
         </p>
       </div>
     );
@@ -509,7 +559,9 @@ function ConfigureStep({
   return (
     <div className="space-y-4">
       <p className="text-foreground/65 text-sm">
-        Configure {connector.name}. Required fields are marked with{" "}
+        {uiText("配置 ", "Configure ")}
+        {connector.name}
+        {uiText("。必填字段带有 ", ". Required fields are marked with ")}
         <span className="text-destructive">*</span>.
       </p>
       {fields.map(([key, field]) => (
@@ -599,14 +651,16 @@ function ScheduleStep({
       {!defaultCollection && (
         <div className="space-y-1.5">
           <Label className="text-foreground/80 text-xs font-medium tracking-wider uppercase">
-            Target collection
+            {uiText("目标集合", "Target collection")}
           </Label>
           <Select
             value={form.collection_name ?? ""}
             onValueChange={(val) => setForm((f) => ({ ...f, collection_name: val || null }))}
           >
             <SelectTrigger className="h-10 rounded-xl">
-              <SelectValue placeholder="Select collection… (optional)" />
+              <SelectValue
+                placeholder={uiText("选择集合…（可选）", "Select collection… (optional)")}
+              />
             </SelectTrigger>
             <SelectContent>
               {collections.map((c) => (
@@ -614,7 +668,9 @@ function ScheduleStep({
                   {c.label ? (
                     <span>
                       {c.label}
-                      <span className="text-foreground/45 ml-1 font-mono text-[10px]">({c.name})</span>
+                      <span className="text-foreground/45 ml-1 font-mono text-[10px]">
+                        ({c.name})
+                      </span>
                     </span>
                   ) : (
                     c.name
@@ -623,13 +679,15 @@ function ScheduleStep({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-foreground/45 text-xs">Leave empty to save as org-level integration.</p>
+          <p className="text-foreground/45 text-xs">
+            {uiText("留空则保存为组织级集成。", "Leave empty to save as org-level integration.")}
+          </p>
         </div>
       )}
 
       <div className="space-y-2">
         <Label className="text-foreground/80 text-xs font-medium tracking-wider uppercase">
-          Sync mode
+          {uiText("同步模式", "Sync mode")}
         </Label>
         <div className="grid gap-2 sm:grid-cols-3">
           {SYNC_MODES.map((mode) => {
@@ -646,8 +704,26 @@ function ScheduleStep({
                     : "border-foreground/10 bg-card hover:border-foreground/30",
                 )}
               >
-                <p className="text-foreground text-sm font-semibold">{mode.label}</p>
-                <p className="text-foreground/55 mt-0.5 text-xs">{mode.description}</p>
+                <p className="text-foreground text-sm font-semibold">
+                  {uiText(
+                    {
+                      full: "全量",
+                      new_only: "仅新增",
+                      update_only: "仅更新",
+                    }[mode.value] ?? mode.label,
+                    mode.label,
+                  )}
+                </p>
+                <p className="text-foreground/55 mt-0.5 text-xs">
+                  {uiText(
+                    {
+                      full: "每次同步都重新处理全部内容",
+                      new_only: "只导入上次同步后新增的文件",
+                      update_only: "只重新导入发生变化的文件",
+                    }[mode.value] ?? mode.description,
+                    mode.description,
+                  )}
+                </p>
               </button>
             );
           })}
@@ -656,7 +732,7 @@ function ScheduleStep({
 
       <div className="space-y-2">
         <Label className="text-foreground/80 text-xs font-medium tracking-wider uppercase">
-          Schedule
+          {uiText("调度计划", "Schedule")}
         </Label>
         <div className="flex flex-wrap gap-2">
           {SCHEDULE_PRESETS.map((p) => {
@@ -675,14 +751,22 @@ function ScheduleStep({
                     : "text-foreground/65 hover:text-foreground hover:border-foreground/40",
                 )}
               >
-                {p.label}
+                {uiText(
+                  {
+                    0: "手动",
+                    60: "每小时",
+                    360: "每 6 小时",
+                    1440: "每天",
+                  }[p.value] ?? p.label,
+                  p.label,
+                )}
               </button>
             );
           })}
         </div>
         <div className="flex items-center gap-2 pt-1">
           <Label htmlFor="custom-schedule" className="text-foreground/55 text-xs">
-            Custom (minutes):
+            {uiText("自定义（分钟）：", "Custom (minutes):")}
           </Label>
           <Input
             id="custom-schedule"

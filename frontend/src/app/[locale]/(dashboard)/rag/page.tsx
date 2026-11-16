@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks";
 import { ROUTES } from "@/lib/constants";
@@ -69,15 +70,28 @@ import { apiClient } from "@/lib/api-client";
 import { PageHeader } from "@/components/dashboard/page-header";
 
 import { BACKEND_URL } from "@/lib/constants";
-import { getErrorMessage, isAppAdmin, MAX_UPLOAD_SIZE_MB, timeAgo } from "@/lib/utils";
+import { getErrorMessage, isAppAdmin, MAX_UPLOAD_SIZE_MB, timeAgo, uiText } from "@/lib/utils";
 
 interface CollectionWithInfo {
   name: string;
   info: RAGCollectionInfo | null;
 }
 
+const COLLECTION_LABELS_ZH: Record<string, string> = {
+  after_sales_policies: "售后政策",
+};
+
+function collectionLabel(name: string, isChinese: boolean): string {
+  return isChinese ? (COLLECTION_LABELS_ZH[name] ?? name) : name;
+}
+
 function StatusIcon({ status }: { status: string }) {
-  const label = status === "done" ? "Completed" : status === "error" ? "Failed" : "Processing";
+  const label =
+    status === "done"
+      ? uiText("已完成", "Completed")
+      : status === "error"
+        ? uiText("失败", "Failed")
+        : uiText("处理中", "Processing");
   return (
     <span role="status" aria-label={label}>
       {status === "done" && <CheckCircle className="text-foreground h-4 w-4" />}
@@ -90,6 +104,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export default function RAGPage() {
+  const isChinese = useLocale() === "zh";
   const { user } = useAuth();
   const router = useRouter();
 
@@ -160,11 +175,11 @@ export default function RAGPage() {
       setCollections(items);
       setSelected((prev) => (items.length > 0 && !prev ? (items[0]?.name ?? "") : prev));
     } catch {
-      toast.error("Failed to load collections");
+      toast.error(isChinese ? "加载知识库集合失败" : "Failed to load collections");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isChinese]);
 
   const fetchDocs = async (col: string) => {
     if (!col) {
@@ -217,17 +232,21 @@ export default function RAGPage() {
 
   const handleAddSource = async (data: SyncSourceCreate) => {
     if (!data.name || !data.connector_type || !data.collection_name) {
-      toast.error("Name, connector type, and collection are required");
+      toast.error(
+        isChinese
+          ? "名称、连接器类型和集合均为必填项"
+          : "Name, connector type, and collection are required",
+      );
       return;
     }
     setAddSourceSubmitting(true);
     try {
       await createSyncSource(data);
-      toast.success(`Source "${data.name}" created`);
+      toast.success(isChinese ? `数据源“${data.name}”已创建` : `Source "${data.name}" created`);
       setAddSourceOpen(false);
       fetchSyncSources();
     } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to create source"));
+      toast.error(getErrorMessage(err, isChinese ? "创建数据源失败" : "Failed to create source"));
     } finally {
       setAddSourceSubmitting(false);
     }
@@ -236,21 +255,21 @@ export default function RAGPage() {
   const handleDeleteSource = async (sourceId: string) => {
     try {
       await deleteSyncSource(sourceId);
-      toast.success("Source deleted");
+      toast.success(isChinese ? "数据源已删除" : "Source deleted");
       setSyncSources((prev) => prev.filter((s) => s.id !== sourceId));
     } catch {
-      toast.error("Failed to delete source");
+      toast.error(isChinese ? "删除数据源失败" : "Failed to delete source");
     }
   };
 
   const handleTriggerSync = async (sourceId: string) => {
     try {
       await triggerSyncSource(sourceId);
-      toast.success("Sync triggered");
+      toast.success(isChinese ? "已触发同步" : "Sync triggered");
       fetchSyncLogs();
       fetchSyncSources();
     } catch {
-      toast.error("Failed to trigger sync");
+      toast.error(isChinese ? "触发同步失败" : "Failed to trigger sync");
     }
   };
 
@@ -278,36 +297,40 @@ export default function RAGPage() {
           prev.map((d) => (d.id === data.document_id ? { ...d, status: data.status } : d)),
         );
         if (data.status === "done") {
-          toast.success(`${data.filename}: Ingested successfully`);
+          toast.success(
+            isChinese ? `${data.filename}：入库成功` : `${data.filename}: Ingested successfully`,
+          );
           fetchCollections();
         } else if (data.status === "error") {
-          toast.error(`${data.filename}: Ingestion failed`);
+          toast.error(
+            isChinese ? `${data.filename}：入库失败` : `${data.filename}: Ingestion failed`,
+          );
         }
       } catch {}
     });
 
     return () => es.close();
-  }, [fetchCollections]);
+  }, [fetchCollections, isChinese]);
 
   const handleCreate = async () => {
     const name = newName.trim().toLowerCase().replace(/\s+/g, "_");
     if (!name) return;
     try {
       await createCollection(name);
-      toast.success(`"${name}" created`);
+      toast.success(isChinese ? `集合“${name}”已创建` : `"${name}" created`);
       setNewName("");
       setShowCreate(false);
       await fetchCollections();
       setSelected(name);
     } catch {
-      toast.error("Failed to create collection");
+      toast.error(isChinese ? "创建集合失败" : "Failed to create collection");
     }
   };
 
   const handleDelete = async (name: string) => {
     try {
       await deleteCollection(name);
-      toast.success(`"${name}" deleted`);
+      toast.success(isChinese ? `集合“${name}”已删除` : `"${name}" deleted`);
       setCollections((prev) => prev.filter((c) => c.name !== name));
       if (selected === name) {
         setSelected("");
@@ -315,18 +338,18 @@ export default function RAGPage() {
         setSearchResults([]);
       }
     } catch {
-      toast.error("Failed to delete");
+      toast.error(isChinese ? "删除失败" : "Failed to delete");
     }
   };
 
   const handleDeleteDoc = async (docId: string) => {
     try {
       await deleteTrackedDocument(docId);
-      toast.success("Document deleted");
+      toast.success(isChinese ? "文档已删除" : "Document deleted");
       setDocs((prev) => prev.filter((d) => d.id !== docId));
       fetchCollections();
     } catch {
-      toast.error("Failed to delete");
+      toast.error(isChinese ? "删除失败" : "Failed to delete");
     }
   };
 
@@ -345,12 +368,20 @@ export default function RAGPage() {
 
         const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
         if (allowedExts.length > 0 && !allowedExts.includes(ext)) {
-          toast.error(`${file.name}: Unsupported format (${ext})`);
+          toast.error(
+            isChinese
+              ? `${file.name}：不支持的文件格式（${ext}）`
+              : `${file.name}: Unsupported format (${ext})`,
+          );
           errorCount++;
           continue;
         }
         if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
-          toast.error(`${file.name}: Too large (max ${MAX_UPLOAD_SIZE_MB}MB)`);
+          toast.error(
+            isChinese
+              ? `${file.name}：文件过大，最大支持 ${MAX_UPLOAD_SIZE_MB}MB`
+              : `${file.name}: Too large (max ${MAX_UPLOAD_SIZE_MB}MB)`,
+          );
           errorCount++;
           continue;
         }
@@ -359,7 +390,7 @@ export default function RAGPage() {
           await ingestFile(selected, file);
           successCount++;
         } catch (err) {
-          toast.error(`${file.name}: ${getErrorMessage(err, "Failed")}`);
+          toast.error(`${file.name}: ${getErrorMessage(err, isChinese ? "失败" : "Failed")}`);
           errorCount++;
         }
       }
@@ -369,14 +400,16 @@ export default function RAGPage() {
 
       if (successCount > 0) {
         toast.success(
-          `${successCount} file${successCount > 1 ? "s" : ""} ingested${errorCount > 0 ? `, ${errorCount} failed` : ""}`,
+          isChinese
+            ? `成功入库 ${successCount} 个文件${errorCount > 0 ? `，失败 ${errorCount} 个` : ""}`
+            : `${successCount} file${successCount > 1 ? "s" : ""} ingested${errorCount > 0 ? `, ${errorCount} failed` : ""}`,
         );
       }
 
       await fetchDocs(selected);
       await fetchCollections();
     },
-    [selected, supportedFormats, fetchCollections],
+    [selected, supportedFormats, fetchCollections, isChinese],
   );
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,12 +422,14 @@ export default function RAGPage() {
   const handleDrop = useCallback(
     (files: File[]) => {
       if (!selected) {
-        toast.error("Select a collection before dropping files");
+        toast.error(
+          isChinese ? "请先选择一个集合，再拖入文件" : "Select a collection before dropping files",
+        );
         return;
       }
       processFiles(files);
     },
-    [selected, processFiles],
+    [selected, processFiles, isChinese],
   );
 
   const handleSearch = async () => {
@@ -409,7 +444,7 @@ export default function RAGPage() {
       setSearchResults(data.results);
       setSearchDone(true);
     } catch {
-      toast.error("Search failed");
+      toast.error(isChinese ? "搜索失败" : "Search failed");
     } finally {
       setSearching(false);
     }
@@ -418,9 +453,18 @@ export default function RAGPage() {
   const info = collections.find((c) => c.name === selected)?.info;
 
   const tabs: { key: "documents" | "search" | "sync"; label: string }[] = [
-    { key: "documents", label: docs.length > 0 ? `Documents (${docs.length})` : "Documents" },
-    { key: "search", label: "Search" },
-    { key: "sync", label: "Sync" },
+    {
+      key: "documents",
+      label: isChinese
+        ? docs.length > 0
+          ? `文档（${docs.length}）`
+          : "文档"
+        : docs.length > 0
+          ? `Documents (${docs.length})`
+          : "Documents",
+    },
+    { key: "search", label: isChinese ? "语义搜索" : "Search" },
+    { key: "sync", label: isChinese ? "自动同步" : "Sync" },
   ];
 
   return (
@@ -428,11 +472,23 @@ export default function RAGPage() {
       <DragDropOverlay
         onDrop={handleDrop}
         disabled={!selected || uploading}
-        title={selected ? `Drop files into "${selected}"` : "Drop files to upload"}
+        title={
+          selected
+            ? isChinese
+              ? `拖入文件到“${collectionLabel(selected, true)}”`
+              : `Drop files into "${selected}"`
+            : isChinese
+              ? "拖入文件上传"
+              : "Drop files to upload"
+        }
         description={
           selected
-            ? "Files will be ingested into the active collection"
-            : "Select a collection first"
+            ? isChinese
+              ? "文件会被写入当前集合"
+              : "Files will be ingested into the active collection"
+            : isChinese
+              ? "请先选择集合"
+              : "Select a collection first"
         }
         acceptedFormats={supportedFormats}
       />
@@ -440,16 +496,23 @@ export default function RAGPage() {
         open={addSourceOpen}
         onOpenChange={setAddSourceOpen}
         connectors={connectors}
-        collections={collections.map((c) => ({ name: c.name }))}
+        collections={collections.map((c) => ({
+          name: c.name,
+          label: collectionLabel(c.name, isChinese),
+        }))}
         defaultCollection={selected}
         onSubmit={handleAddSource}
         submitting={addSourceSubmitting}
       />
 
       <PageHeader
-        eyebrow="Knowledge"
-        title="RAG"
-        description="Manage knowledge-base collections, ingest documents, run semantic search, and configure automated sync sources."
+        eyebrow={isChinese ? "知识库" : "Knowledge"}
+        title={isChinese ? "检索增强知识库" : "RAG"}
+        description={
+          isChinese
+            ? "管理知识库集合、导入文档、执行语义搜索，并配置自动同步数据源。"
+            : "Manage knowledge-base collections, ingest documents, run semantic search, and configure automated sync sources."
+        }
       />
 
       <div className="border-border bg-card rounded-xl border p-4">
@@ -458,13 +521,15 @@ export default function RAGPage() {
             <div className="flex items-center gap-2">
               <Database className="text-muted-foreground h-4 w-4 shrink-0" />
               <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                Collection
+                {isChinese ? "知识库集合" : "Collection"}
               </span>
             </div>
             {loading ? (
               <Skeleton className="h-9 w-56 rounded-xl" />
             ) : collections.length === 0 ? (
-              <span className="text-muted-foreground text-sm">No collections yet</span>
+              <span className="text-muted-foreground text-sm">
+                {isChinese ? "暂无集合" : "No collections yet"}
+              </span>
             ) : (
               <Select
                 value={selected}
@@ -476,13 +541,17 @@ export default function RAGPage() {
                 }}
               >
                 <SelectTrigger className="h-9 w-full rounded-xl sm:w-72">
-                  <SelectValue placeholder="Select a collection" />
+                  <SelectValue placeholder={isChinese ? "选择集合" : "Select a collection"} />
                 </SelectTrigger>
                 <SelectContent>
                   {collections.map((col) => (
                     <SelectItem key={col.name} value={col.name}>
-                      {col.name}
-                      {col.info ? ` · ${col.info.total_vectors.toLocaleString()} vectors` : ""}
+                      {collectionLabel(col.name, isChinese)}
+                      {col.info
+                        ? isChinese
+                          ? ` · ${col.info.total_vectors.toLocaleString()} 个向量`
+                          : ` · ${col.info.total_vectors.toLocaleString()} vectors`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -490,7 +559,9 @@ export default function RAGPage() {
             )}
             {info && (
               <span className="text-muted-foreground font-mono text-xs">
-                {info.total_vectors.toLocaleString()} vectors · {info.dim}d
+                {isChinese
+                  ? `${info.total_vectors.toLocaleString()} 个向量 · ${info.dim} 维`
+                  : `${info.total_vectors.toLocaleString()} vectors · ${info.dim}d`}
               </span>
             )}
           </div>
@@ -503,7 +574,7 @@ export default function RAGPage() {
               onClick={() => setShowCreate((v) => !v)}
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              New collection
+              {isChinese ? "新建集合" : "New collection"}
             </Button>
             {uploadProgress ? (
               <div
@@ -526,7 +597,7 @@ export default function RAGPage() {
                 disabled={uploading || !selected}
               >
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
-                Upload files
+                {isChinese ? "上传文件" : "Upload files"}
               </Button>
             )}
             {selected && (
@@ -542,18 +613,24 @@ export default function RAGPage() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete collection &ldquo;{selected}&rdquo;?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {isChinese
+                        ? `删除集合“${collectionLabel(selected, true)}”？`
+                        : `Delete collection “${selected}”?`}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      All documents and vectors will be permanently removed.
+                      {isChinese
+                        ? "该集合中的所有文档和向量都会被永久删除。"
+                        : "All documents and vectors will be permanently removed."}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{isChinese ? "取消" : "Cancel"}</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       onClick={() => handleDelete(selected)}
                     >
-                      Delete
+                      {isChinese ? "删除" : "Delete"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -573,14 +650,14 @@ export default function RAGPage() {
         {showCreate && (
           <div className="border-border mt-3 flex gap-2 border-t pt-3">
             <Input
-              placeholder="collection_name"
+              placeholder={isChinese ? "集合名称" : "collection_name"}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               className="h-9 max-w-xs rounded-xl"
             />
             <Button size="sm" className="h-9 rounded-xl" onClick={handleCreate}>
-              Create
+              {isChinese ? "创建" : "Create"}
             </Button>
             <Button
               size="sm"
@@ -591,7 +668,7 @@ export default function RAGPage() {
                 setNewName("");
               }}
             >
-              Cancel
+              {isChinese ? "取消" : "Cancel"}
             </Button>
           </div>
         )}
@@ -611,7 +688,11 @@ export default function RAGPage() {
       {!selected ? (
         <div className="border-border bg-card text-muted-foreground flex flex-col items-center justify-center rounded-xl border py-16 text-center">
           <Database className="mb-3 h-8 w-8" />
-          <p className="text-sm">Select or create a collection to get started.</p>
+          <p className="text-sm">
+            {isChinese
+              ? "请选择或创建一个集合开始使用。"
+              : "Select or create a collection to get started."}
+          </p>
         </div>
       ) : (
         <>
@@ -648,15 +729,19 @@ export default function RAGPage() {
             ) : docs.length === 0 ? (
               <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border py-16 text-center">
                 <FileText className="text-muted-foreground mb-3 h-8 w-8" />
-                <p className="text-foreground text-sm font-medium">No documents</p>
-                <p className="text-muted-foreground mt-1 text-xs">Upload PDF, DOCX, TXT, or MD</p>
+                <p className="text-foreground text-sm font-medium">
+                  {isChinese ? "暂无文档" : "No documents"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {isChinese ? "支持上传 PDF、DOCX、TXT 或 MD" : "Upload PDF, DOCX, TXT, or MD"}
+                </p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-4 rounded-xl"
                   onClick={() => fileRef.current?.click()}
                 >
-                  <Upload className="mr-2 h-4 w-4" /> Upload files
+                  <Upload className="mr-2 h-4 w-4" /> {isChinese ? "上传文件" : "Upload files"}
                 </Button>
               </div>
             ) : (
@@ -682,7 +767,9 @@ export default function RAGPage() {
                             </span>
                           )}
                           {doc.status === "processing" && (
-                            <span className="text-muted-foreground text-xs">Processing...</span>
+                            <span className="text-muted-foreground text-xs">
+                              {isChinese ? "处理中…" : "Processing..."}
+                            </span>
                           )}
                           {doc.status === "error" && (
                             <span className="text-destructive max-w-[200px] truncate text-xs">
@@ -704,7 +791,7 @@ export default function RAGPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg p-1.5 transition-colors"
-                          title="View original"
+                          title={isChinese ? "查看原文件" : "View original"}
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </a>
@@ -717,18 +804,22 @@ export default function RAGPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete &ldquo;{doc.filename}&rdquo;?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              {isChinese ? `删除“${doc.filename}”？` : `Delete “${doc.filename}”?`}
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will remove the document from vector store and storage.
+                              {isChinese
+                                ? "这会同时从向量库和文件存储中删除该文档。"
+                                : "This will remove the document from vector store and storage."}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{isChinese ? "取消" : "Cancel"}</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               onClick={() => handleDeleteDoc(doc.id)}
                             >
-                              Delete
+                              {isChinese ? "删除" : "Delete"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -744,7 +835,11 @@ export default function RAGPage() {
               <div className="border-border bg-card rounded-xl border p-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder={`Search in "${selected}"...`}
+                    placeholder={
+                      isChinese
+                        ? `在“${collectionLabel(selected, true)}”中搜索…`
+                        : `Search in "${selected}"...`
+                    }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -756,7 +851,7 @@ export default function RAGPage() {
                     className="rounded-xl"
                   >
                     <Search className="mr-2 h-4 w-4" />
-                    {searching ? "..." : "Search"}
+                    {searching ? "..." : isChinese ? "搜索" : "Search"}
                   </Button>
                 </div>
               </div>
@@ -764,9 +859,13 @@ export default function RAGPage() {
               {searchDone && searchResults.length === 0 && !searching && (
                 <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border py-12 text-center">
                   <Search className="text-muted-foreground mb-3 h-8 w-8" />
-                  <p className="text-foreground text-sm font-medium">No results found</p>
+                  <p className="text-foreground text-sm font-medium">
+                    {isChinese ? "没有找到结果" : "No results found"}
+                  </p>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    Try a different query or check another collection
+                    {isChinese
+                      ? "请尝试其他关键词，或切换到其他集合。"
+                      : "Try a different query or check another collection"}
                   </p>
                 </div>
               )}
@@ -790,7 +889,9 @@ export default function RAGPage() {
                           </span>
                           {r.metadata?.page_num != null && (
                             <Badge variant="outline" className="font-mono text-[10px]">
-                              p.{String(r.metadata.page_num)}
+                              {isChinese ? "第" : "p."}
+                              {String(r.metadata.page_num)}
+                              {isChinese ? "页" : ""}
                             </Badge>
                           )}
                           <Badge variant="secondary" className="ml-auto font-mono text-[10px]">
@@ -803,7 +904,7 @@ export default function RAGPage() {
                               rel="noopener noreferrer"
                               className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[10px] font-medium"
                             >
-                              <Eye className="h-3 w-3" /> View source
+                              <Eye className="h-3 w-3" /> {isChinese ? "查看来源" : "View source"}
                             </a>
                           )}
                         </div>
@@ -820,7 +921,9 @@ export default function RAGPage() {
             <div className="space-y-6">
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-foreground text-sm font-semibold">Sync sources</h3>
+                  <h3 className="text-foreground text-sm font-semibold">
+                    {isChinese ? "自动同步数据源" : "Sync sources"}
+                  </h3>
                   <Button
                     size="sm"
                     variant="outline"
@@ -830,7 +933,7 @@ export default function RAGPage() {
                       if (connectors.length === 0) fetchConnectors();
                     }}
                   >
-                    <Plus className="mr-1 h-3.5 w-3.5" /> Add source
+                    <Plus className="mr-1 h-3.5 w-3.5" /> {isChinese ? "添加数据源" : "Add source"}
                   </Button>
                 </div>
 
@@ -843,18 +946,19 @@ export default function RAGPage() {
                 ) : syncSources.length === 0 ? (
                   <div className="border-border bg-card flex flex-col items-center justify-center rounded-xl border py-8 text-center">
                     <Database className="text-muted-foreground mb-2 h-6 w-6" />
-                    <p className="text-foreground text-sm font-medium">No sync sources configured</p>
+                    <p className="text-foreground text-sm font-medium">
+                      {isChinese ? "尚未配置同步数据源" : "No sync sources configured"}
+                    </p>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Add a source to start syncing documents automatically
+                      {isChinese
+                        ? "添加数据源后即可自动同步文档。"
+                        : "Add a source to start syncing documents automatically"}
                     </p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {syncSources.map((source) => (
-                      <div
-                        key={source.id}
-                        className="border-border bg-card rounded-xl border p-4"
-                      >
+                      <div key={source.id} className="border-border bg-card rounded-xl border p-4">
                         <div className="mb-2 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Database className="text-muted-foreground h-4 w-4" />
@@ -863,23 +967,36 @@ export default function RAGPage() {
                             </span>
                           </div>
                           <Badge variant={source.is_active ? "default" : "secondary"}>
-                            {source.is_active ? "Active" : "Disabled"}
+                            {source.is_active
+                              ? isChinese
+                                ? "已启用"
+                                : "Active"
+                              : isChinese
+                                ? "已停用"
+                                : "Disabled"}
                           </Badge>
                         </div>
                         <div className="text-muted-foreground space-y-1 text-sm">
                           <p>
-                            {source.connector_type} &rarr; {source.collection_name}
+                            {source.connector_type} &rarr;{" "}
+                            {source.collection_name
+                              ? collectionLabel(source.collection_name, isChinese)
+                              : "—"}
                           </p>
                           <p>
                             {source.schedule_minutes
-                              ? `Every ${source.schedule_minutes}min`
-                              : "Manual"}{" "}
+                              ? isChinese
+                                ? `每 ${source.schedule_minutes} 分钟`
+                                : `Every ${source.schedule_minutes}min`
+                              : isChinese
+                                ? "手动"
+                                : "Manual"}{" "}
                             &bull; {source.sync_mode}
                           </p>
                           {source.last_sync_at && (
                             <p className="text-xs">
-                              Last sync: {timeAgo(source.last_sync_at)} &mdash;{" "}
-                              {source.last_sync_status}
+                              {isChinese ? "上次同步：" : "Last sync: "}
+                              {timeAgo(source.last_sync_at)} &mdash; {source.last_sync_status}
                             </p>
                           )}
                           {source.last_error && (
@@ -893,7 +1010,8 @@ export default function RAGPage() {
                             className="rounded-xl"
                             onClick={() => handleTriggerSync(source.id)}
                           >
-                            <RefreshCw className="mr-1 h-3 w-3" /> Sync now
+                            <RefreshCw className="mr-1 h-3 w-3" />{" "}
+                            {isChinese ? "立即同步" : "Sync now"}
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -908,20 +1026,25 @@ export default function RAGPage() {
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  Delete source &ldquo;{source.name}&rdquo;?
+                                  {isChinese
+                                    ? `删除数据源“${source.name}”？`
+                                    : `Delete source “${source.name}”?`}
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove the sync source configuration. Existing documents
-                                  will not be affected.
+                                  {isChinese
+                                    ? "这会删除同步配置，但不会影响已经导入的文档。"
+                                    : "This will remove the sync source configuration. Existing documents will not be affected."}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>
+                                  {isChinese ? "取消" : "Cancel"}
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   onClick={() => handleDeleteSource(source.id)}
                                 >
-                                  Delete
+                                  {isChinese ? "删除" : "Delete"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -934,7 +1057,9 @@ export default function RAGPage() {
               </div>
 
               <div>
-                <h3 className="text-foreground mb-3 text-sm font-semibold">History</h3>
+                <h3 className="text-foreground mb-3 text-sm font-semibold">
+                  {isChinese ? "同步历史" : "History"}
+                </h3>
                 {syncLogsLoading ? (
                   <div className="space-y-2">
                     {[1, 2, 3].map((i) => (
@@ -942,7 +1067,9 @@ export default function RAGPage() {
                     ))}
                   </div>
                 ) : syncLogs.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No sync history yet</p>
+                  <p className="text-muted-foreground text-sm">
+                    {isChinese ? "暂无同步历史" : "No sync history yet"}
+                  </p>
                 ) : (
                   <div className="space-y-2">
                     {syncLogs.map((log) => (
@@ -953,7 +1080,7 @@ export default function RAGPage() {
                               status={log.status === "running" ? "processing" : log.status}
                             />
                             <span className="text-foreground text-sm font-medium">
-                              {log.collection_name}
+                              {collectionLabel(log.collection_name, isChinese)}
                             </span>
                             <Badge variant="outline" className="font-mono text-[10px]">
                               {log.source}
@@ -965,7 +1092,9 @@ export default function RAGPage() {
                           <div className="flex items-center gap-2">
                             {log.started_at && (
                               <span className="text-muted-foreground font-mono text-[10px]">
-                                {new Date(log.started_at).toLocaleString()}
+                                {new Date(log.started_at).toLocaleString(
+                                  isChinese ? "zh-CN" : "en-US",
+                                )}
                               </span>
                             )}
                             {log.status === "running" && (
@@ -976,27 +1105,41 @@ export default function RAGPage() {
                                 onClick={async () => {
                                   try {
                                     await cancelSync(log.id);
-                                    toast.success("Sync cancelled");
+                                    toast.success(isChinese ? "同步已取消" : "Sync cancelled");
                                     fetchSyncLogs();
                                   } catch {
-                                    toast.error("Failed to cancel");
+                                    toast.error(isChinese ? "取消失败" : "Failed to cancel");
                                   }
                                 }}
                               >
-                                Cancel
+                                {isChinese ? "取消" : "Cancel"}
                               </Button>
                             )}
                           </div>
                         </div>
                         <div className="text-muted-foreground mt-2 flex flex-wrap gap-3 font-mono text-xs">
-                          <span>{log.total_files} total</span>
-                          {log.ingested > 0 && <span className="text-foreground">{log.ingested} new</span>}
-                          {log.updated > 0 && (
-                            <span className="text-foreground">{log.updated} updated</span>
+                          <span>
+                            {isChinese ? `共 ${log.total_files} 个` : `${log.total_files} total`}
+                          </span>
+                          {log.ingested > 0 && (
+                            <span className="text-foreground">
+                              {isChinese ? `${log.ingested} 个新增` : `${log.ingested} new`}
+                            </span>
                           )}
-                          {log.skipped > 0 && <span>{log.skipped} skipped</span>}
+                          {log.updated > 0 && (
+                            <span className="text-foreground">
+                              {isChinese ? `${log.updated} 个更新` : `${log.updated} updated`}
+                            </span>
+                          )}
+                          {log.skipped > 0 && (
+                            <span>
+                              {isChinese ? `${log.skipped} 个跳过` : `${log.skipped} skipped`}
+                            </span>
+                          )}
                           {log.failed > 0 && (
-                            <span className="text-destructive">{log.failed} failed</span>
+                            <span className="text-destructive">
+                              {isChinese ? `${log.failed} 个失败` : `${log.failed} failed`}
+                            </span>
                           )}
                         </div>
                         {log.error_message && (
@@ -1016,4 +1159,3 @@ export default function RAGPage() {
     </div>
   );
 }
-

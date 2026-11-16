@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -100,6 +101,69 @@ const STATUS_TONE: Record<string, string> = {
   failed: "bg-red-500/10 text-red-700",
 };
 
+const STATUS_LABELS_ZH: Record<string, string> = {
+  pending: "待处理",
+  paid: "已支付",
+  completed: "已完成",
+  waiting_approval: "待审批",
+  approved: "已批准",
+  rejected: "已拒绝",
+  refund_pending: "退款处理中",
+  refunded: "已退款",
+  resolved: "已解决",
+  failed: "失败",
+  success: "成功",
+  running: "运行中",
+  cancelled: "已取消",
+};
+
+const ACTION_LABELS_ZH: Record<string, string> = {
+  manual_review: "转人工复核",
+  approve_refund: "批准退款",
+  reject_refund: "拒绝退款",
+  request_evidence: "补充证据",
+  exchange: "换货",
+  return_refund: "退货退款",
+};
+
+const TOOL_LABELS_ZH: Record<string, string> = {
+  get_order: "查询订单",
+  get_logistics: "查询物流",
+  get_after_sales_ticket: "查询售后单",
+  check_refund_eligibility: "校验退款资格",
+  current_datetime: "获取当前时间",
+  get_current_datetime: "获取当前时间",
+  search_after_sales_policy: "检索售后政策",
+  create_refund_proposal: "创建退款提案",
+  ask_user: "向用户追问",
+};
+
+const STOP_REASON_ZH: Record<string, string> = {
+  final_answer: "完成回答",
+  user_cancelled: "用户取消",
+  max_steps: "达到最大步骤数",
+  token_budget: "达到 Token 预算",
+  tool_failure: "工具调用失败",
+  approval_required: "等待人工审批",
+};
+
+function statusLabel(status: string, isChinese: boolean): string {
+  return isChinese ? (STATUS_LABELS_ZH[status] ?? status) : status;
+}
+
+function actionLabel(action: string, isChinese: boolean): string {
+  return isChinese ? (ACTION_LABELS_ZH[action] ?? action) : action;
+}
+
+function toolLabel(name: string, isChinese: boolean): string {
+  return isChinese ? (TOOL_LABELS_ZH[name] ?? name) : name;
+}
+
+function stopReasonLabel(reason: string | null, isChinese: boolean): string {
+  if (!reason) return isChinese ? "无停止原因" : "no stop reason";
+  return isChinese ? (STOP_REASON_ZH[reason] ?? reason) : reason;
+}
+
 const SHOP_PROMPTS: ChatEmptyPrompt[] = [
   {
     icon: PackageCheck,
@@ -124,6 +188,7 @@ const SHOP_PROMPTS: ChatEmptyPrompt[] = [
 ];
 
 export function ShopWorkbench() {
+  const isChinese = useLocale() === "zh";
   const { user } = useAuth();
   const admin = isAppAdmin(user);
   const queryClient = useQueryClient();
@@ -170,10 +235,7 @@ export function ShopWorkbench() {
     return proposals.filter((proposal) => ticketIds.has(proposal.ticket_id));
   }, [orderTickets, proposals]);
   const selectedTicket = useMemo(
-    () =>
-      orderTickets.find((ticket) => ticket.id === selectedTicketId) ??
-      orderTickets[0] ??
-      null,
+    () => orderTickets.find((ticket) => ticket.id === selectedTicketId) ?? orderTickets[0] ?? null,
     [orderTickets, selectedTicketId],
   );
 
@@ -185,10 +247,17 @@ export function ShopWorkbench() {
   });
 
   const decisionMutation = useMutation({
-    mutationFn: ({ proposalId, decision }: { proposalId: string; decision: "approve" | "reject" }) =>
+    mutationFn: ({
+      proposalId,
+      decision,
+    }: {
+      proposalId: string;
+      decision: "approve" | "reject";
+    }) =>
       apiClient.post(`/shop/admin/proposals/${proposalId}/decision`, {
         decision,
-        note: decision === "approve" ? "Approved from ShopAgent workbench" : "Rejected after review",
+        note:
+          decision === "approve" ? "Approved from ShopAgent workbench" : "Rejected after review",
       }),
     onSuccess: async () => {
       await Promise.all([
@@ -231,14 +300,15 @@ export function ShopWorkbench() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-muted-foreground font-mono text-[11px] tracking-[0.18em] uppercase">
-            Commerce operations
+            {isChinese ? "商城运营" : "Commerce operations"}
           </p>
           <h1 className="font-display mt-1 text-2xl font-semibold">售后 Agent 工作台</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
             同一套业务数据里查看订单、工单、Agent 证据与退款提案。高风险动作只能由人工审批。
           </p>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs">
-            使用方式：先点选左侧订单，再点“让 Agent 研判”。无需自己编写专业提示词，系统会自动带入订单和工单信息。
+            使用方式：先点选左侧订单，再点“让 Agent
+            研判”。无需自己编写专业提示词，系统会自动带入订单和工单信息。
           </p>
         </div>
         <Button
@@ -276,7 +346,7 @@ export function ShopWorkbench() {
             <p className="text-sm font-semibold">业务对象</p>
             <p className="text-muted-foreground mt-1 text-xs">先选订单，再选关联售后单</p>
           </div>
-          <div className="scrollbar-thin max-h-[580px] overflow-y-auto p-2">
+          <div className="max-h-[580px] scrollbar-thin overflow-y-auto p-2">
             {orders.map((order) => {
               const relatedTickets = tickets.filter((ticket) => ticket.order_id === order.id);
               const active = order.id === selectedOrder?.id;
@@ -292,12 +362,14 @@ export function ShopWorkbench() {
                     "mb-2 w-full rounded-xl border p-3 text-left transition-colors",
                     active
                       ? "border-foreground/30 bg-accent"
-                      : "border-transparent hover:bg-accent/60",
+                      : "hover:bg-accent/60 border-transparent",
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-[11px]">{order.order_no}</span>
-                    <Badge className={STATUS_TONE[order.status] ?? ""}>{order.status}</Badge>
+                    <Badge className={STATUS_TONE[order.status] ?? ""}>
+                      {statusLabel(order.status, isChinese)}
+                    </Badge>
                   </div>
                   <p className="mt-2 truncate text-sm font-medium">
                     {order.items.map((item) => item.product_name).join(" + ")}
@@ -326,18 +398,17 @@ export function ShopWorkbench() {
               </p>
             </div>
             <Button onClick={askAgent} disabled={!selectedOrder}>
-              <Sparkles className="h-4 w-4" />
-              让 Agent 研判
+              <Sparkles className="h-4 w-4" />让 Agent 研判
             </Button>
           </div>
-          <div className="scrollbar-thin max-h-[580px] space-y-4 overflow-y-auto p-4">
+          <div className="max-h-[580px] scrollbar-thin space-y-4 overflow-y-auto p-4">
             {selectedOrder ? (
               <>
                 <section>
                   <div className="flex items-center justify-between">
                     <h2 className="font-mono text-sm font-semibold">{selectedOrder.order_no}</h2>
                     <Badge className={STATUS_TONE[selectedOrder.status] ?? ""}>
-                      {selectedOrder.status}
+                      {statusLabel(selectedOrder.status, isChinese)}
                     </Badge>
                   </div>
                   <div className="mt-3 space-y-2">
@@ -386,7 +457,9 @@ export function ShopWorkbench() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-xs">{ticket.ticket_no}</span>
-                          <Badge className={STATUS_TONE[ticket.status] ?? ""}>{ticket.status}</Badge>
+                          <Badge className={STATUS_TONE[ticket.status] ?? ""}>
+                            {statusLabel(ticket.status, isChinese)}
+                          </Badge>
                         </div>
                         <p className="text-muted-foreground mt-2 line-clamp-2 text-xs">
                           {ticket.reason}
@@ -410,7 +483,7 @@ export function ShopWorkbench() {
                       <div key={proposal.id} className="border-border rounded-xl border p-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-xs">{proposal.proposal_no}</span>
-                          <Badge>{proposal.recommended_action}</Badge>
+                          <Badge>{actionLabel(proposal.recommended_action, isChinese)}</Badge>
                         </div>
                         <p className="text-muted-foreground mt-2 text-xs">{proposal.rationale}</p>
                         <div className="mt-3 flex items-center justify-between gap-2">
@@ -457,19 +530,21 @@ export function ShopWorkbench() {
 
                 <section>
                   <h3 className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
-                    最近 Agent Trace
+                    最近 Agent 运行记录
                   </h3>
                   <div className="mt-2 space-y-2">
                     {runs.slice(0, 4).map((run) => (
                       <div key={run.id} className="border-border rounded-xl border p-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate font-mono text-[11px]">{run.trace_id}</span>
-                          <Badge className={STATUS_TONE[run.status] ?? ""}>{run.status}</Badge>
+                          <Badge className={STATUS_TONE[run.status] ?? ""}>
+                            {statusLabel(run.status, isChinese)}
+                          </Badge>
                         </div>
                         <div className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
                           <span>{run.latency_ms} ms</span>
                           <span>{run.total_tokens} tokens</span>
-                          <span>{run.stop_reason || "no stop reason"}</span>
+                          <span>{stopReasonLabel(run.stop_reason, isChinese)}</span>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {run.steps.map((step) => (
@@ -482,7 +557,7 @@ export function ShopWorkbench() {
                                   : "bg-red-500/10 text-red-700",
                               )}
                             >
-                              {step.tool_name || step.node} · {step.latency_ms}ms
+                              {toolLabel(step.tool_name || step.node, isChinese)} · {step.latency_ms}ms
                             </span>
                           ))}
                         </div>
@@ -507,7 +582,7 @@ export function ShopWorkbench() {
         <Card className="flex min-h-[640px] min-w-0 shrink-0 flex-col overflow-hidden p-0">
           <div className="border-border border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="text-amber-600 h-4 w-4" />
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
               <p className="text-sm font-semibold">Agent 研判台</p>
             </div>
             <p className="text-muted-foreground mt-1 text-xs">

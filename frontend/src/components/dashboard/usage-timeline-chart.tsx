@@ -9,14 +9,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { uiText } from "@/lib/utils";
 
 export type UsageMetric = "credits" | "calls" | "tokens";
-
-const METRIC_LABELS: Record<UsageMetric, string> = {
-  credits: "Credits",
-  calls: "Calls",
-  tokens: "Tokens",
-};
 
 export interface UsageChartPoint {
   day: string;
@@ -98,13 +93,17 @@ function UsageTooltip({
 }) {
   const first = payload?.[0];
   if (!active || !first) return null;
+  const metricLabels: Record<UsageMetric, string> = {
+    credits: uiText("额度", "credits"),
+    calls: uiText("调用次数", "calls"),
+    tokens: uiText("Token", "tokens"),
+  };
   return (
     <div className="border-border bg-card text-foreground rounded-lg border px-3 py-2 text-xs shadow-lg">
       <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">{label}</p>
       <p className="mt-1 font-semibold">
-        {first.value.toLocaleString()} {METRIC_LABELS[metric].toLowerCase()}
+        {first.value.toLocaleString()} {metricLabels[metric]}
       </p>
     </div>
   );
 }
-

@@ -32,8 +32,8 @@ function buildLocalizedPath(pathname: string, newLocale: Locale): string {
 }
 
 /**
- * Default language switcher — segmented pills (ZH | EN | PL).
- * Used in the dashboard footer / settings, where space allows three buttons.
+ * Default language switcher — segmented pills (ZH | EN).
+ * Used in the dashboard footer / settings, where space allows both buttons.
  */
 export function LanguageSwitcher() {
   const locale = useLocale();
@@ -104,7 +104,7 @@ export function LanguageSwitcherCompact() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Language"
+        aria-label={locale === "zh" ? "切换语言" : "Language"}
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
@@ -126,7 +126,7 @@ export function LanguageSwitcherCompact() {
             "mt-2 min-w-[180px] origin-top-right overflow-hidden rounded-2xl border",
             "shadow-lg shadow-black/5 backdrop-blur",
           )}
-          style={ {
+          style={{
             animation: "lsFadeIn 140ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         >
@@ -189,7 +189,7 @@ export function LanguageSwitcherIcon() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="Language"
+          aria-label={locale === "zh" ? "切换语言" : "Language"}
           className={cn(
             "text-muted-foreground hover:text-foreground hover:bg-accent",
             "focus-visible:ring-ring inline-flex h-9 w-9 items-center justify-center rounded-lg",
@@ -204,11 +204,7 @@ export function LanguageSwitcherIcon() {
         {locales.map((loc) => {
           const active = loc === locale;
           return (
-            <DropdownMenuItem
-              key={loc}
-              onSelect={() => handleChange(loc)}
-              className="gap-2.5"
-            >
+            <DropdownMenuItem key={loc} onSelect={() => handleChange(loc)} className="gap-2.5">
               <span aria-hidden className="text-base leading-none">
                 {getLocaleFlag(loc)}
               </span>

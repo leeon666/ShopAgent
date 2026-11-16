@@ -3,13 +3,23 @@ import { Sparkles } from "lucide-react";
 
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
-const HIGHLIGHTS = [
-  "Streaming chat with tool calls",
-  "Knowledge base over your docs",
-  "Stripe billing & teams in a click",
-];
+export default async function AuthLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isChinese = locale === "zh";
+  const highlights = isChinese
+    ? ["支持工具调用的流式对话", "基于团队文档的知识库", "一键管理团队与订阅"]
+    : [
+        "Streaming chat with tool calls",
+        "Knowledge base over your docs",
+        "Stripe billing & teams in a click",
+      ];
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background text-foreground min-h-screen lg:grid lg:grid-cols-[1.1fr_minmax(0,560px)]">
       <main id="main" className="theme-light bg-background text-foreground relative flex flex-col">
@@ -43,21 +53,32 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="relative z-10">
             <span className="eyebrow-badge inline-flex items-center gap-2">
               <Sparkles className="h-3 w-3" aria-hidden />
-              An AI assistant that knows your team&apos;s work
+              {isChinese
+                ? "真正了解团队业务的 AI 助手"
+                : "An AI assistant that knows your team's work"}
             </span>
           </div>
 
           <div className="relative z-10 max-w-[28rem]">
             <h2 className="text-display-lg text-foreground [&_em]:font-accent mb-6 leading-[1.05] [&_em]:font-normal [&_em]:italic">
-              Ship the AI feature <em>your team</em> actually wants.
+              {isChinese ? (
+                <>
+                  交付<em>团队真正需要</em>的 AI 能力。
+                </>
+              ) : (
+                <>
+                  Ship the AI feature <em>your team</em> actually wants.
+                </>
+              )}
             </h2>
             <p className="text-foreground/65 max-w-md text-base leading-relaxed">
-              Auth, billing, vector search, agents — already wired. You ship the product, not the
-              plumbing.
+              {isChinese
+                ? "认证、计费、向量检索和 Agent 已经打通。你只需要专注产品本身。"
+                : "Auth, billing, vector search, agents — already wired. You ship the product, not the plumbing."}
             </p>
 
             <ul className="mt-10 space-y-3">
-              {HIGHLIGHTS.map((line) => (
+              {highlights.map((line) => (
                 <li key={line} className="text-foreground/85 flex items-center gap-3 text-sm">
                   <span aria-hidden className="bg-brand h-1.5 w-1.5 shrink-0 rounded-full" />
                   {line}
@@ -68,7 +89,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           <figure className="border-foreground/10 bg-card/40 relative z-10 max-w-md rounded-2xl border p-5 backdrop-blur-xl">
             <blockquote className="text-foreground/90 text-sm leading-relaxed">
-              &ldquo;Replaced four SaaS tools and shipped our first AI feature in two weeks.&rdquo;
+              {isChinese
+                ? "“替换了四个 SaaS 工具，并在两周内上线了第一个 AI 功能。”"
+                : "“Replaced four SaaS tools and shipped our first AI feature in two weeks.”"}
             </blockquote>
             <figcaption className="mt-4 flex items-center gap-3">
               <span
@@ -79,7 +102,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               </span>
               <div>
                 <p className="text-foreground text-sm font-semibold">Eli Park</p>
-                <p className="text-foreground/55 text-xs">Founder · Vellum Labs</p>
+                <p className="text-foreground/55 text-xs">
+                  {isChinese ? "创始人 · Vellum Labs" : "Founder · Vellum Labs"}
+                </p>
               </div>
             </figcaption>
           </figure>
@@ -88,4 +113,3 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
-

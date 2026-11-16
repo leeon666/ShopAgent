@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 interface ErrorStateProps {
   title?: string;
@@ -10,8 +10,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = "Something went wrong",
-  description = "Check your connection and try again.",
+  title = uiText("发生错误", "Something went wrong"),
+  description = uiText("请检查网络连接后重试。", "Check your connection and try again."),
   cta,
   className,
 }: ErrorStateProps) {

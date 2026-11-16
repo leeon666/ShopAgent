@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useConversations } from "@/hooks";
 import { Button, Skeleton } from "@/components/ui";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui";
@@ -44,6 +44,7 @@ function ConversationItem({
   onShare,
 }: ConversationItemProps) {
   const t = useTranslations("chat");
+  const isChinese = useLocale() === "zh";
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conversation.title || "");
@@ -93,7 +94,7 @@ function ConversationItem({
           <span className="block truncate">{displayTitle}</span>
           <span className="text-muted-foreground block truncate text-[10px]">
             {new Date(conversation.updated_at || conversation.created_at).toLocaleDateString(
-              undefined,
+              isChinese ? "zh-CN" : "en-US",
               { month: "short", day: "numeric" },
             )}
           </span>
@@ -152,7 +153,7 @@ function ConversationItem({
                   }}
                 >
                   <ArchiveRestore className="h-4 w-4" />
-                  Restore
+                  {isChinese ? "恢复" : "Restore"}
                 </button>
               ) : (
                 <button
@@ -216,6 +217,7 @@ function ConversationList({
   onLoadMore,
 }: ConversationListProps) {
   const t = useTranslations("chat");
+  const isChinese = useLocale() === "zh";
   const [view, setView] = useState<ConversationView>("active");
   const [shareConversationId, setShareConversationId] = useState<string | null>(null);
 
@@ -252,13 +254,13 @@ function ConversationList({
       <div className="px-3 pb-2">
         <div className="bg-secondary/50 flex rounded-lg p-0.5">
           <ViewTab
-            label="Active"
+            label={isChinese ? "进行中" : "Active"}
             count={activeCount}
             active={view === "active"}
             onClick={() => setView("active")}
           />
           <ViewTab
-            label="Archived"
+            label={isChinese ? "已归档" : "Archived"}
             count={archivedCount}
             active={view === "archived"}
             onClick={() => setView("archived")}
@@ -294,10 +296,18 @@ function ConversationList({
               )}
             </span>
             <p className="text-foreground text-sm font-medium">
-              {isArchivedView ? "No archived conversations" : t("noConversations")}
+              {isArchivedView
+                ? isChinese
+                  ? "暂无已归档对话"
+                  : "No archived conversations"
+                : t("noConversations")}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              {isArchivedView ? "Conversations you archive will appear here." : t("startNewChat")}
+              {isArchivedView
+                ? isChinese
+                  ? "归档后的对话会显示在这里。"
+                  : "Conversations you archive will appear here."
+                : t("startNewChat")}
             </p>
           </div>
         ) : (
@@ -337,6 +347,7 @@ interface ConversationSidebarProps {
 
 export function ConversationSidebar({ className }: ConversationSidebarProps) {
   const t = useTranslations("chat");
+  const isChinese = useLocale() === "zh";
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { isOpen, close } = useChatSidebarStore();
   const {
@@ -383,7 +394,7 @@ export function ConversationSidebar({ className }: ConversationSidebarProps) {
           size="sm"
           className="mb-4 h-10 w-10 p-0"
           onClick={() => setIsCollapsed(false)}
-          aria-label="Expand conversations sidebar"
+          aria-label={isChinese ? "展开对话侧栏" : "Expand conversations sidebar"}
         >
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
@@ -392,8 +403,8 @@ export function ConversationSidebar({ className }: ConversationSidebarProps) {
           size="sm"
           className="h-10 w-10 p-0"
           onClick={startNewChat}
-          title="New Chat"
-          aria-label="New chat"
+          title={isChinese ? "新建对话" : "New Chat"}
+          aria-label={isChinese ? "新建对话" : "New chat"}
         >
           <SquarePen className="h-4 w-4" aria-hidden />
         </Button>
@@ -413,7 +424,7 @@ export function ConversationSidebar({ className }: ConversationSidebarProps) {
             size="sm"
             className="h-8 w-8 p-0"
             onClick={() => setIsCollapsed(true)}
-            aria-label="Collapse conversations sidebar"
+            aria-label={isChinese ? "收起对话侧栏" : "Collapse conversations sidebar"}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </Button>
@@ -461,7 +472,7 @@ function ViewTab({
       {label}
       <span
         className={cn(
-          "tabular-nums text-[10px]",
+          "text-[10px] tabular-nums",
           active ? "text-foreground" : "text-muted-foreground/60",
         )}
       >
@@ -470,4 +481,3 @@ function ViewTab({
     </button>
   );
 }
-

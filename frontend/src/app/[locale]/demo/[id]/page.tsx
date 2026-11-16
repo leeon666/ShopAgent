@@ -27,23 +27,28 @@ export default async function DemoDetailPage({
   params: Promise<{ id: string; locale: string }>;
 }) {
   const { id, locale } = await params;
+  const isChinese = locale === "zh";
   const demo = await fetchDemo(id);
 
   if (!demo) {
     return (
       <div className="bg-background flex min-h-screen items-center justify-center px-4">
         <div className="text-center">
-          <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h1 className="mt-4 text-xl font-semibold text-foreground">Demo not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This demo may have been removed or is no longer public.
+          <MessageSquare className="text-muted-foreground mx-auto h-12 w-12" />
+          <h1 className="text-foreground mt-4 text-xl font-semibold">
+            {isChinese ? "演示不存在" : "Demo not found"}
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {isChinese
+              ? "该演示可能已被删除，或已不再公开。"
+              : "This demo may have been removed or is no longer public."}
           </p>
           <Link
             href={`/${locale}/demo`}
-            className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
+            className="text-brand mt-6 inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to all demos
+            {isChinese ? "返回全部演示" : "Back to all demos"}
           </Link>
         </div>
       </div>
@@ -52,18 +57,18 @@ export default async function DemoDetailPage({
 
   return (
     <div className="bg-background flex h-screen flex-col overflow-hidden">
-      <header className="bg-background/90 sticky top-0 z-20 border-b border-border backdrop-blur">
+      <header className="bg-background/90 border-border sticky top-0 z-20 border-b backdrop-blur">
         <div className="flex h-14 items-center gap-4 px-6">
           <Link
             href={`/${locale}/demo`}
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1.5 text-sm font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Demos
+            {isChinese ? "演示" : "Demos"}
           </Link>
           <span className="text-border select-none">·</span>
-          <h1 className="truncate text-sm font-medium text-foreground/70">
-            {demo.title || "Agent session"}
+          <h1 className="text-foreground/70 truncate text-sm font-medium">
+            {demo.title || (isChinese ? "Agent 会话" : "Agent session")}
           </h1>
         </div>
       </header>

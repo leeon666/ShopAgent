@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import { uiText } from "@/lib/utils";
 
 interface Testimonial {
   quote: string;
@@ -28,7 +29,10 @@ export function TestimonialGrid({ items }: TestimonialGridProps) {
           key={`${t.name}-${i}`}
           className="border-foreground/15 bg-card lift hover:border-foreground/25 flex flex-col gap-5 rounded-2xl border p-7 transition-colors"
         >
-          <div className="flex items-center gap-0.5" aria-label="Rated 5 out of 5">
+          <div
+            className="flex items-center gap-0.5"
+            aria-label={uiText("评分 5 分（满分 5 分）", "Rated 5 out of 5")}
+          >
             {Array.from({ length: 5 }).map((_, s) => (
               <Star key={s} className="fill-brand text-brand h-4 w-4" />
             ))}
@@ -58,4 +62,3 @@ export function TestimonialGrid({ items }: TestimonialGridProps) {
     </div>
   );
 }
-

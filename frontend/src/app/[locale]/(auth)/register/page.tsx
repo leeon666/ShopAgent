@@ -10,9 +10,12 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const isChinese = locale === "zh";
   return pageMetadata({
-    title: "Create your account",
-    description: "Start your free trial — no credit card required.",
+    title: isChinese ? "创建账户" : "Create your account",
+    description: isChinese
+      ? "开始免费试用，无需信用卡。"
+      : "Start your free trial — no credit card required.",
     path: "/register",
     locale,
   });

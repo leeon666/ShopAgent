@@ -1,5 +1,6 @@
 "use client";
 import type { ToolCall } from "@/types";
+import { useLocale } from "next-intl";
 import { MarkdownContent } from "../markdown-content";
 import { CopyButton } from "../copy-button";
 
@@ -47,11 +48,16 @@ export function RunPythonResult({
   toolCall: ToolCall;
   resultText: string;
 }) {
+  const isChinese = useLocale() === "zh";
   const code = typeof toolCall.args?.code === "string" ? toolCall.args.code.trim() : null;
   const isRunning = toolCall.status !== "completed" && !resultText;
 
   if (isRunning) {
-    return <p className="text-muted-foreground py-2 text-xs italic">Running…</p>;
+    return (
+      <p className="text-muted-foreground py-2 text-xs italic">
+        {isChinese ? "运行中…" : "Running…"}
+      </p>
+    );
   }
 
   const { stdout, result, error } = parseResult(resultText);
@@ -71,10 +77,10 @@ export function RunPythonResult({
         <div className="group relative">
           <div className="border-border bg-muted overflow-hidden rounded-xl border">
             <div className="border-foreground/8 text-foreground/55 flex items-center justify-between border-b px-3 py-1.5 font-mono text-[10px] tracking-wider uppercase">
-              <span>Output</span>
+              <span>{isChinese ? "输出" : "Output"}</span>
               <CopyButton text={outputText} className="opacity-0 group-hover:opacity-100" />
             </div>
-            <pre className="text-foreground/85 scrollbar-thin max-h-80 overflow-y-auto p-3.5 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap">
+            <pre className="text-foreground/85 max-h-80 scrollbar-thin overflow-y-auto p-3.5 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap">
               {outputText}
             </pre>
           </div>

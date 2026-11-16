@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { Progress } from "@/components/ui";
 import { APP_NAME, ROUTES } from "@/lib/constants";
@@ -26,14 +27,6 @@ interface OnboardingShellProps {
   hideSkip?: boolean;
 }
 
-const STEP_LABELS: Record<OnboardingStep, string> = {
-  welcome: "Welcome",
-  agent: "Pick agent",
-  data: "Connect data",
-  team: "Invite team",
-  done: "Done",
-};
-
 export function OnboardingShell({
   step,
   title,
@@ -42,6 +35,14 @@ export function OnboardingShell({
   hideSkip,
 }: OnboardingShellProps) {
   const router = useRouter();
+  const isChinese = useLocale() === "zh";
+  const stepLabels: Record<OnboardingStep, string> = {
+    welcome: isChinese ? "欢迎" : "Welcome",
+    agent: isChinese ? "选择 Agent" : "Pick agent",
+    data: isChinese ? "连接数据" : "Connect data",
+    team: isChinese ? "邀请团队" : "Invite team",
+    done: isChinese ? "完成" : "Done",
+  };
   const idx = stepIndex(step);
   const total = ONBOARDING_STEPS.length;
   // Last step is 1-indexed `idx + 1`; fill the bar proportionally.
@@ -68,7 +69,7 @@ export function OnboardingShell({
               href={ROUTES.DASHBOARD}
               className="text-muted-foreground hover:text-foreground text-xs font-medium tracking-wide uppercase"
             >
-              Skip for now →
+              {isChinese ? "暂时跳过 →" : "Skip for now →"}
             </Link>
           )}
         </div>
@@ -77,7 +78,11 @@ export function OnboardingShell({
           <Progress
             value={progressValue}
             className="h-1"
-            aria-label={`Onboarding progress: step ${idx + 1} of ${total}`}
+            aria-label={
+              isChinese
+                ? `初始化进度：第 ${idx + 1} 步，共 ${total} 步`
+                : `Onboarding progress: step ${idx + 1} of ${total}`
+            }
           />
           <ol className="flex items-center gap-1.5 sm:gap-3">
             {ONBOARDING_STEPS.map((s, i) => {
@@ -100,7 +105,7 @@ export function OnboardingShell({
                       active || done ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {STEP_LABELS[s]}
+                    {stepLabels[s]}
                   </span>
                   {i < total - 1 && (
                     <span
@@ -120,11 +125,13 @@ export function OnboardingShell({
       <main className="mx-auto max-w-3xl px-6 py-12 md:py-20">
         <div className="space-y-3">
           <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-            Step {idx + 1} of {total}
+            {isChinese ? `第 ${idx + 1} 步，共 ${total} 步` : `Step ${idx + 1} of ${total}`}
           </p>
           <h1 className="text-display-lg text-foreground">{title}</h1>
           {description && (
-            <p className="text-muted-foreground max-w-xl text-base leading-relaxed">{description}</p>
+            <p className="text-muted-foreground max-w-xl text-base leading-relaxed">
+              {description}
+            </p>
           )}
         </div>
 
@@ -137,7 +144,7 @@ export function OnboardingShell({
             className="text-muted-foreground hover:text-foreground mt-10 inline-flex items-center gap-2 text-sm font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {isChinese ? "返回" : "Back"}
           </button>
         )}
       </main>

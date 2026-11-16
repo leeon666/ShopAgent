@@ -8,7 +8,7 @@ export default createMiddleware({
   localePrefix: "as-needed",
 
   // Always serve Simplified Chinese at root, regardless of the visitor's
-  // Accept-Language header. English and Polish remain available explicitly.
+  // Accept-Language header. English remains available explicitly.
   localeDetection: false,
 });
 

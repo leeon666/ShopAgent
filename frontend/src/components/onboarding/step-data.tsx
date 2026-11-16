@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, FileText, FolderOpen, HardDrive, Upload } from "lucide-react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 import { BrandIcon } from "@/components/marketing/brand-icon";
@@ -15,6 +16,7 @@ type Choice = "upload" | "gdrive" | "skip" | null;
 
 export function StepData() {
   const router = useRouter();
+  const isChinese = useLocale() === "zh";
   const [choice, setChoice] = useState<Choice>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -28,7 +30,7 @@ export function StepData() {
     // The real upload UI lives in /rag. Surface a toast and continue.
     setTimeout(() => {
       setUploading(false);
-      toast.success(`Queued ${file.name} for indexing`);
+      toast.success(isChinese ? `${file.name} 已加入索引队列` : `Queued ${file.name} for indexing`);
     }, 600);
   };
 
@@ -39,14 +41,22 @@ export function StepData() {
   return (
     <OnboardingShell
       step="data"
-      title="Connect your data"
-      description="Drop a doc to ground answers in your team's knowledge — or skip and add data later."
+      title={isChinese ? "连接数据" : "Connect your data"}
+      description={
+        isChinese
+          ? "上传文档，让回答基于团队知识；也可以先跳过，稍后再添加。"
+          : "Drop a doc to ground answers in your team's knowledge — or skip and add data later."
+      }
     >
       <div className="grid gap-3">
         <ChoiceCard
           icon={Upload}
-          title="Upload a file"
-          description="PDF, DOCX, MD, or TXT up to 50 MB"
+          title={isChinese ? "上传文件" : "Upload a file"}
+          description={
+            isChinese
+              ? "支持 PDF、DOCX、MD 或 TXT，最大 50 MB"
+              : "PDF, DOCX, MD, or TXT up to 50 MB"
+          }
           selected={choice === "upload"}
           onClick={() => {
             setChoice("upload");
@@ -63,18 +73,30 @@ export function StepData() {
         />
         <ChoiceCard
           brandIcon="gdrive"
-          title="Sync from Google Drive"
-          description="Connect a folder — auto-reindex on changes"
+          title={isChinese ? "从 Google Drive 同步" : "Sync from Google Drive"}
+          description={
+            isChinese
+              ? "连接文件夹，内容变化后自动重新索引"
+              : "Connect a folder — auto-reindex on changes"
+          }
           selected={choice === "gdrive"}
           onClick={() => {
             setChoice("gdrive");
-            toast.info("Drive sync configured in /rag → Sources");
+            toast.info(
+              isChinese
+                ? "请在“知识库 → 数据源”中配置云盘同步。"
+                : "Drive sync configured in /rag → Sources",
+            );
           }}
         />
         <ChoiceCard
           icon={HardDrive}
-          title="Skip for now"
-          description="You can add data sources from the Knowledge Base any time"
+          title={isChinese ? "暂时跳过" : "Skip for now"}
+          description={
+            isChinese
+              ? "之后可以随时在知识库中添加数据源。"
+              : "You can add data sources from the Knowledge Base any time"
+          }
           selected={choice === "skip"}
           onClick={() => setChoice("skip")}
         />
@@ -85,13 +107,13 @@ export function StepData() {
           <FileText className="text-muted-foreground h-4 w-4" />
           <span className="text-foreground flex-1 truncate font-mono text-xs">{filename}</span>
           <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-            {uploading ? "Queueing…" : "Ready"}
+            {uploading ? (isChinese ? "加入队列中…" : "Queueing…") : isChinese ? "已就绪" : "Ready"}
           </span>
         </div>
       )}
 
       <Button size="lg" className="mt-8" onClick={handleNext}>
-        Continue
+        {isChinese ? "继续" : "Continue"}
         <ArrowRight className="h-4 w-4" />
       </Button>
     </OnboardingShell>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 
 import { Button, Input, Label } from "@/components/ui";
@@ -12,6 +12,7 @@ import { EMAIL_RE } from "@/lib/utils";
 
 export function ForgotPasswordForm() {
   const t = useTranslations("auth");
+  const isChinese = useLocale() === "zh";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -20,7 +21,7 @@ export function ForgotPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!EMAIL_RE.test(email)) {
-      setError("Please enter a valid email address");
+      setError(isChinese ? "请输入有效的邮箱地址" : "Please enter a valid email address");
       return;
     }
     setError("");
@@ -31,7 +32,7 @@ export function ForgotPasswordForm() {
     } catch (err) {
       // Treat "not found" the same as success to avoid email enumeration.
       if (err instanceof ApiError && err.status >= 500) {
-        setError("Something went wrong. Please try again.");
+        setError(isChinese ? "发生错误，请稍后重试。" : "Something went wrong. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -50,13 +51,26 @@ export function ForgotPasswordForm() {
           <Mail className="text-foreground h-6 w-6" />
         </div>
         <div className="space-y-2">
-          <span className="eyebrow text-foreground/55">Check your inbox</span>
+          <span className="eyebrow text-foreground/55">
+            {isChinese ? "请查看邮箱" : "Check your inbox"}
+          </span>
           <h1 className="text-display-md text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-            Link sent. <em>On its way.</em>
+            {isChinese ? (
+              <>
+                链接已发送，<em>正在路上。</em>
+              </>
+            ) : (
+              <>
+                Link sent. <em>On its way.</em>
+              </>
+            )}
           </h1>
           <p className="text-foreground/70 text-sm">
-            If an account exists for <span className="text-foreground font-medium">{email}</span>,
-            you&apos;ll get a reset link in a moment. It expires in 1 hour.
+            {isChinese ? "如果 " : "If an account exists for "}
+            <span className="text-foreground font-medium">{email}</span>
+            {isChinese
+              ? " 已注册，你稍后会收到重置链接。链接将在 1 小时后失效。"
+              : ", you'll get a reset link in a moment. It expires in 1 hour."}
           </p>
         </div>
         <Link
@@ -64,7 +78,7 @@ export function ForgotPasswordForm() {
           className="text-foreground/65 hover:text-foreground inline-flex items-center gap-2 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to sign in
+          {isChinese ? "返回登录" : "Back to sign in"}
         </Link>
       </div>
     );
@@ -73,12 +87,24 @@ export function ForgotPasswordForm() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <span className="eyebrow text-foreground/55">Forgot password?</span>
+        <span className="eyebrow text-foreground/55">
+          {isChinese ? "忘记密码？" : "Forgot password?"}
+        </span>
         <h1 className="text-display-md text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          Happens to the <em>best of us.</em>
+          {isChinese ? (
+            <>
+              每个人都会<em>偶尔忘掉。</em>
+            </>
+          ) : (
+            <>
+              Happens to the <em>best of us.</em>
+            </>
+          )}
         </h1>
         <p className="text-foreground/65 text-sm">
-          Drop your email below — we&apos;ll send you a one-time link to set a new password.
+          {isChinese
+            ? "输入邮箱，我们会发送一个一次性链接，用于设置新密码。"
+            : "Drop your email below — we'll send you a one-time link to set a new password."}
         </p>
       </div>
 
@@ -115,10 +141,14 @@ export function ForgotPasswordForm() {
           className="bg-foreground text-background hover:bg-foreground/90 h-12 w-full rounded-full text-base font-medium"
         >
           {isLoading ? (
-            "Sending…"
+            isChinese ? (
+              "发送中…"
+            ) : (
+              "Sending…"
+            )
           ) : (
             <>
-              Send reset link
+              {isChinese ? "发送重置链接" : "Send reset link"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}
@@ -129,10 +159,9 @@ export function ForgotPasswordForm() {
           className="text-foreground/55 hover:text-foreground mt-2 inline-flex items-center gap-2 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to sign in
+          {isChinese ? "返回登录" : "Back to sign in"}
         </Link>
       </form>
     </div>
   );
 }
-

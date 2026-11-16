@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { CornerDownLeft, Pencil, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
@@ -33,6 +34,7 @@ export interface QuestionPromptProps {
  * selects the focused option (or submits the custom answer).
  */
 export function QuestionPrompt({ questions, disabled = false, onComplete }: QuestionPromptProps) {
+  const isChinese = useLocale() === "zh";
   const [step, setStep] = useState(0);
   const answersRef = useRef<QuestionPromptAnswer[]>([]);
 
@@ -59,7 +61,9 @@ export function QuestionPrompt({ questions, disabled = false, onComplete }: Ques
       <div className="flex items-center justify-between gap-3 px-4 pt-2.5 pb-0.5">
         {total > 1 ? (
           <span className="text-muted-foreground font-mono text-[10px] tracking-wider uppercase">
-            Question {step + 1} of {total}
+            {isChinese
+              ? `第 ${step + 1} 个问题，共 ${total} 个`
+              : `Question ${step + 1} of ${total}`}
           </span>
         ) : (
           <span />
@@ -68,7 +72,7 @@ export function QuestionPrompt({ questions, disabled = false, onComplete }: Ques
           type="button"
           onClick={dismiss}
           disabled={disabled}
-          aria-label="Dismiss questions"
+          aria-label={isChinese ? "关闭问题" : "Dismiss questions"}
           className="text-muted-foreground hover:text-foreground shrink-0 rounded-md p-1 transition-colors"
         >
           <X className="h-4 w-4" />
@@ -108,6 +112,7 @@ function SingleQuestion({
   onAnswer,
   onSkip,
 }: SingleQuestionProps) {
+  const isChinese = useLocale() === "zh";
   const hasOptions = options.length > 0;
   const [focusIdx, setFocusIdx] = useState(0);
   // Open the free-form field straight away when there are no options to pick.
@@ -154,7 +159,7 @@ function SingleQuestion({
       tabIndex={-1}
       onKeyDown={onListKeyDown}
       role="group"
-      aria-label="Question from the assistant"
+      aria-label={isChinese ? "助手提问" : "Question from the assistant"}
       className="outline-none"
     >
       <p className="text-foreground px-4 pb-2.5 text-[15px] leading-snug font-medium">{question}</p>
@@ -203,7 +208,7 @@ function SingleQuestion({
               type="text"
               value={customText}
               disabled={disabled}
-              placeholder="Type your answer…"
+              placeholder={isChinese ? "输入你的回答…" : "Type your answer…"}
               onChange={(e) => setCustomText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -220,7 +225,7 @@ function SingleQuestion({
               disabled={disabled || !customText.trim()}
               onClick={submitCustom}
             >
-              {isLast ? "Done" : "Next"}
+              {isLast ? (isChinese ? "完成" : "Done") : isChinese ? "下一步" : "Next"}
             </Button>
           </div>
         ) : (
@@ -233,7 +238,7 @@ function SingleQuestion({
                 className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Something else
+                {isChinese ? "其他回答" : "Something else"}
               </button>
             ) : (
               <span />
@@ -246,7 +251,7 @@ function SingleQuestion({
               disabled={disabled}
               onClick={onSkip}
             >
-              Skip
+              {isChinese ? "跳过" : "Skip"}
             </Button>
           </div>
         )}

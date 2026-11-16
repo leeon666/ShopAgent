@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import {
   Download,
   ExternalLink,
@@ -37,8 +38,8 @@ import type { MessageRatingListResponse, MessageRatingWithDetails, RatingSummary
 const PAGE_SIZE = 50;
 type RatingFilter = "all" | "positive" | "negative";
 
-
 export default function AdminRatingsPage() {
+  const isChinese = useLocale() === "zh";
   const [summary, setSummary] = useState<RatingSummary | null>(null);
   const [ratings, setRatings] = useState<MessageRatingListResponse | null>(null);
   const [filter, setFilter] = useState<RatingFilter>("all");
@@ -91,7 +92,7 @@ export default function AdminRatingsPage() {
   const columns: Column<MessageRatingWithDetails>[] = [
     {
       key: "date",
-      header: "Date",
+      header: isChinese ? "日期" : "Date",
       className: "whitespace-nowrap",
       cell: (r) => (
         <span className="text-muted-foreground font-mono text-xs tabular-nums">
@@ -101,23 +102,23 @@ export default function AdminRatingsPage() {
     },
     {
       key: "rating",
-      header: "Rating",
+      header: isChinese ? "评价" : "Rating",
       cell: (r) =>
         r.rating === 1 ? (
           <span className="bg-muted text-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
             <ThumbsUp className="h-3 w-3" />
-            Like
+            {isChinese ? "喜欢" : "Like"}
           </span>
         ) : (
           <span className="bg-muted text-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
             <ThumbsDown className="h-3 w-3" />
-            Dislike
+            {isChinese ? "不喜欢" : "Dislike"}
           </span>
         ),
     },
     {
       key: "comment",
-      header: "Comment",
+      header: isChinese ? "评论" : "Comment",
       className: "max-w-[180px]",
       cell: (r) => (
         <span className="text-foreground block truncate text-xs">
@@ -127,7 +128,7 @@ export default function AdminRatingsPage() {
     },
     {
       key: "message",
-      header: "Message",
+      header: isChinese ? "消息内容" : "Message",
       className: "max-w-[260px]",
       cell: (r) => (
         <span className="text-muted-foreground block truncate text-xs">
@@ -137,7 +138,7 @@ export default function AdminRatingsPage() {
     },
     {
       key: "user",
-      header: "User",
+      header: isChinese ? "用户" : "User",
       className: "whitespace-nowrap",
       cell: (r) => (
         <span className="text-foreground text-xs">{r.user_name || r.user_email || "—"}</span>
@@ -154,7 +155,7 @@ export default function AdminRatingsPage() {
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 font-mono text-[11px] tracking-wider uppercase transition-colors"
           >
             <ExternalLink className="h-3 w-3" />
-            View
+            {isChinese ? "查看" : "View"}
           </Link>
         ) : null,
     },
@@ -164,7 +165,9 @@ export default function AdminRatingsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted-foreground text-sm">
-          User feedback on AI responses — last 30 days.
+          {isChinese
+            ? "用户对 AI 回复的反馈，统计范围为最近 30 天。"
+            : "User feedback on AI responses — last 30 days."}
         </p>
         <div className="flex items-center gap-2">
           <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "json" | "csv")}>
@@ -178,31 +181,31 @@ export default function AdminRatingsPage() {
           </Select>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5" />
-            Export
+            {isChinese ? "导出" : "Export"}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total ratings"
+          label={isChinese ? "评价总数" : "Total ratings"}
           value={loading ? "—" : (summary?.total_ratings ?? 0).toLocaleString()}
           loading={loading}
         />
         <StatCard
-          label="Likes"
+          label={isChinese ? "喜欢" : "Likes"}
           value={loading ? "—" : (summary?.like_count ?? 0).toLocaleString()}
           icon={ThumbsUp}
           loading={loading}
         />
         <StatCard
-          label="Dislikes"
+          label={isChinese ? "不喜欢" : "Dislikes"}
           value={loading ? "—" : (summary?.dislike_count ?? 0).toLocaleString()}
           icon={ThumbsDown}
           loading={loading}
         />
         <StatCard
-          label="Approval rate"
+          label={isChinese ? "好评率" : "Approval rate"}
           value={loading ? "—" : approvalRate !== null ? `${approvalRate}%` : "—"}
           icon={TrendingUp}
           loading={loading}
@@ -211,8 +214,14 @@ export default function AdminRatingsPage() {
 
       {!loading && summary && summary.ratings_by_day.length > 0 && (
         <section className="border-border bg-card rounded-xl border p-6">
-          <h2 className="text-foreground text-sm font-semibold">Ratings per day</h2>
-          <p className="text-muted-foreground text-xs">Likes and dislikes over the last 30 days.</p>
+          <h2 className="text-foreground text-sm font-semibold">
+            {isChinese ? "每日评价趋势" : "Ratings per day"}
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            {isChinese
+              ? "最近 30 天喜欢与不喜欢的变化。"
+              : "Likes and dislikes over the last 30 days."}
+          </p>
           <div className="mt-5 h-56">
             <RatingsChart data={summary.ratings_by_day} />
           </div>
@@ -220,13 +229,13 @@ export default function AdminRatingsPage() {
             <span className="flex items-center gap-1.5">
               <span className="bg-foreground/75 h-2.5 w-2.5 rounded-full" />
               <span className="text-muted-foreground font-mono text-[10px] tracking-wider uppercase">
-                Likes
+                {isChinese ? "喜欢" : "Likes"}
               </span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="bg-foreground/30 h-2.5 w-2.5 rounded-full" />
               <span className="text-muted-foreground font-mono text-[10px] tracking-wider uppercase">
-                Dislikes
+                {isChinese ? "不喜欢" : "Dislikes"}
               </span>
             </span>
           </div>
@@ -246,9 +255,9 @@ export default function AdminRatingsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All ratings</SelectItem>
-              <SelectItem value="positive">Likes only</SelectItem>
-              <SelectItem value="negative">Dislikes only</SelectItem>
+              <SelectItem value="all">{isChinese ? "全部评价" : "All ratings"}</SelectItem>
+              <SelectItem value="positive">{isChinese ? "只看喜欢" : "Likes only"}</SelectItem>
+              <SelectItem value="negative">{isChinese ? "只看不喜欢" : "Dislikes only"}</SelectItem>
             </SelectContent>
           </Select>
           <label className="flex cursor-pointer items-center gap-2 text-xs">
@@ -259,12 +268,16 @@ export default function AdminRatingsPage() {
                 setPage(0);
               }}
             />
-            <span className="text-muted-foreground">With comments only</span>
+            <span className="text-muted-foreground">
+              {isChinese ? "只看带评论的评价" : "With comments only"}
+            </span>
           </label>
         </div>
         {ratings && !loading && (
           <span className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
-            {ratings.total.toLocaleString()} result{ratings.total === 1 ? "" : "s"}
+            {isChinese
+              ? `${ratings.total.toLocaleString()} 条结果`
+              : `${ratings.total.toLocaleString()} result${ratings.total === 1 ? "" : "s"}`}
           </span>
         )}
       </div>
@@ -278,8 +291,12 @@ export default function AdminRatingsPage() {
         empty={
           <div className="py-8">
             <MessageSquare className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
-            <p className="text-foreground text-sm">No ratings found.</p>
-            <p className="text-muted-foreground mt-1 text-xs">Try adjusting the filters above.</p>
+            <p className="text-foreground text-sm">
+              {isChinese ? "没有找到评价。" : "No ratings found."}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {isChinese ? "请尝试调整上方筛选条件。" : "Try adjusting the filters above."}
+            </p>
           </div>
         }
       />
@@ -287,7 +304,9 @@ export default function AdminRatingsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground font-mono text-[11px] tracking-wider uppercase">
-            Page {page + 1} of {totalPages} · {ratings?.total.toLocaleString()} total
+            {isChinese
+              ? `第 ${page + 1} / ${totalPages} 页 · 共 ${ratings?.total.toLocaleString()} 条`
+              : `Page ${page + 1} of ${totalPages} · ${ratings?.total.toLocaleString()} total`}
           </span>
           <div className="flex gap-2">
             <Button
@@ -296,7 +315,7 @@ export default function AdminRatingsPage() {
               disabled={page === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
-              Previous
+              {isChinese ? "上一页" : "Previous"}
             </Button>
             <Button
               variant="outline"
@@ -304,7 +323,7 @@ export default function AdminRatingsPage() {
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             >
-              Next
+              {isChinese ? "下一页" : "Next"}
             </Button>
           </div>
         </div>
@@ -312,5 +331,3 @@ export default function AdminRatingsPage() {
     </div>
   );
 }
-
-

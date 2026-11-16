@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useChat } from "@/hooks";
 import { ChatControls } from "./chat-controls";
 import { ChatEmptyState, type ChatEmptyPrompt } from "./chat-empty-state";
@@ -133,10 +133,7 @@ export function ChatContainer({
           args: tc.args,
           result: tc.result,
           status: (tc.status === "failed" ? "error" : tc.status) as
-            | "pending"
-            | "running"
-            | "completed"
-            | "error",
+            "pending" | "running" | "completed" | "error",
         }));
         // Reconstruct an ordered timeline for assistant turns via the shared builder
         // (same one the demo replay uses), so thinking + reconstructed research +
@@ -168,8 +165,7 @@ export function ChatContainer({
     const container = scrollContainerRef.current;
     if (!container) return;
     const handleScroll = () => {
-      const distFromBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
+      const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       userScrolledUpRef.current = distFromBottom > SCROLL_NEAR_BOTTOM_THRESHOLD_PX;
     };
     container.addEventListener("scroll", handleScroll, { passive: true });
@@ -298,6 +294,7 @@ function ChatUI({
   emptyPrompts,
 }: ChatUIProps) {
   const tc = useTranslations("common");
+  const isChinese = useLocale() === "zh";
   return (
     <div className="flex h-full w-full">
       <div className="mx-auto flex h-full max-w-5xl min-w-0 flex-1 flex-col">
@@ -381,7 +378,9 @@ function ChatUI({
             </div>
           </div>
           <p className="text-foreground/40 mt-2 text-center font-mono text-[10px] tracking-wider uppercase">
-            AI can make mistakes. Verify important information.
+            {isChinese
+              ? "AI 可能会出错，请核实重要信息。"
+              : "AI can make mistakes. Verify important information."}
           </p>
         </div>
       </div>

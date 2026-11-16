@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Mail } from "lucide-react";
+import { getLocale } from "next-intl/server";
 
 import type { Locale } from "@/i18n";
 import { ROUTES } from "@/lib/constants";
@@ -12,9 +13,10 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const isChinese = locale === "zh";
   return pageMetadata({
-    title: "Check your email",
-    description: "We sent you a sign-in link.",
+    title: isChinese ? "请查看邮箱" : "Check your email",
+    description: isChinese ? "登录链接已发送。" : "We sent you a sign-in link.",
     path: "/magic-link-sent",
     locale,
     noindex: true,
@@ -27,6 +29,8 @@ interface PageProps {
 
 export default async function MagicLinkSentPage({ searchParams }: PageProps) {
   const { email } = await searchParams;
+  const locale = await getLocale();
+  const isChinese = locale === "zh";
 
   return (
     <div className="space-y-8 text-center">
@@ -38,32 +42,46 @@ export default async function MagicLinkSentPage({ searchParams }: PageProps) {
       </div>
 
       <div className="space-y-2">
-        <span className="eyebrow text-foreground/55">Magic link</span>
+        <span className="eyebrow text-foreground/55">
+          {isChinese ? "免密登录链接" : "Magic link"}
+        </span>
         <h1 className="text-display-md text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          Inbox, <em>incoming.</em>
+          {isChinese ? (
+            <>
+              邮件<em>已送达。</em>
+            </>
+          ) : (
+            <>
+              Inbox, <em>incoming.</em>
+            </>
+          )}
         </h1>
         <p className="text-foreground/70 text-sm">
-          We sent a sign-in link
+          {isChinese ? "我们已发送登录链接" : "We sent a sign-in link"}
           {email ? (
             <>
               {" "}
-              to <span className="text-foreground font-medium">{email}</span>
+              {isChinese ? "至" : "to"} <span className="text-foreground font-medium">{email}</span>
             </>
           ) : null}
-          . Click it to continue — expires in 15 minutes.
+          {isChinese
+            ? "。点击链接即可继续，链接 15 分钟后失效。"
+            : ". Click it to continue — expires in 15 minutes."}
         </p>
       </div>
 
       <div className="border-foreground/10 bg-foreground/[0.03] rounded-2xl border px-5 py-4 text-left">
         <p className="text-foreground/70 text-xs leading-relaxed">
-          Don&apos;t see it? Check your spam folder, or{" "}
+          {isChinese
+            ? "没有收到？请检查垃圾邮件，或者"
+            : "Don't see it? Check your spam folder, or"}{" "}
           <Link
             href={ROUTES.LOGIN}
             className="text-foreground hover:text-foreground/80 font-medium underline-offset-4 hover:underline"
           >
-            try again
+            {isChinese ? "重新尝试" : "try again"}
           </Link>
-          .
+          {isChinese ? "。" : "."}
         </p>
       </div>
 
@@ -72,9 +90,8 @@ export default async function MagicLinkSentPage({ searchParams }: PageProps) {
         className="text-foreground/55 hover:text-foreground inline-flex items-center gap-2 text-sm font-medium"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to sign in
+        {isChinese ? "返回登录" : "Back to sign in"}
       </Link>
     </div>
   );
 }
-

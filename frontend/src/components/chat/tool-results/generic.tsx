@@ -1,5 +1,6 @@
 "use client";
 import type { ToolCall } from "@/types";
+import { useLocale } from "next-intl";
 import { CopyButton } from "../copy-button";
 
 /** Pretty-print tool args. Handles three shapes:
@@ -29,15 +30,18 @@ function isEmptyArgs(args: unknown): boolean {
 
 /** Raw view: arguments + the exact tool output, monospace, unparsed. */
 export function RawToolView({ toolCall, resultText }: { toolCall: ToolCall; resultText: string }) {
+  const isChinese = useLocale() === "zh";
   return (
     <div className="space-y-3">
       {isEmptyArgs(toolCall.args) ? (
-        <p className="text-muted-foreground text-xs italic">No arguments</p>
+        <p className="text-muted-foreground text-xs italic">
+          {isChinese ? "没有参数" : "No arguments"}
+        </p>
       ) : (
         <div className="group relative">
           <div className="mb-1 flex items-center justify-between">
             <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">
-              Arguments
+              {isChinese ? "参数" : "Arguments"}
             </p>
             <CopyButton
               text={formatArgs(toolCall.args)}
@@ -53,7 +57,7 @@ export function RawToolView({ toolCall, resultText }: { toolCall: ToolCall; resu
         <div className="group relative">
           <div className="mb-1 flex items-center justify-between">
             <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">
-              Result
+              {isChinese ? "结果" : "Result"}
             </p>
             <CopyButton text={resultText} className="opacity-0 group-hover:opacity-100" />
           </div>
@@ -76,6 +80,7 @@ export function GenericToolResult({
   toolCall: ToolCall;
   resultText: string;
 }) {
+  const isChinese = useLocale() === "zh";
   let prettyJson: string | null = null;
   try {
     const parsed = JSON.parse(resultText);
@@ -89,7 +94,13 @@ export function GenericToolResult({
   if (toolCall.status !== "completed" && !resultText) {
     return (
       <p className="text-muted-foreground py-2 text-xs italic">
-        {toolCall.status === "error" ? "Tool failed." : "Running…"}
+        {toolCall.status === "error"
+          ? isChinese
+            ? "工具执行失败。"
+            : "Tool failed."
+          : isChinese
+            ? "运行中…"
+            : "Running…"}
       </p>
     );
   }
@@ -100,7 +111,7 @@ export function GenericToolResult({
         <div className="group relative">
           <div className="mb-1 flex items-center justify-between">
             <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">
-              Arguments
+              {isChinese ? "参数" : "Arguments"}
             </p>
             <CopyButton
               text={formatArgs(toolCall.args)}

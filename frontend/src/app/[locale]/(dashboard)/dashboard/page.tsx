@@ -1,16 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import {
-  Database,
-  List,
-  MessageSquare,
-  Plus,
-  Star,
-} from "lucide-react";
+import { Database, List, MessageSquare, Plus, Star } from "lucide-react";
 import { ActiveSessions } from "@/components/dashboard/active-sessions";
 import { OnboardingBanner } from "@/components/dashboard/onboarding-banner";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -81,11 +74,7 @@ export default function DashboardPage() {
 
       <PageHeader
         eyebrow={isChinese ? "仪表盘" : "Dashboard"}
-        title={
-          firstName
-            ? `${getGreeting(isChinese)}, ${firstName}`
-            : getGreeting(isChinese)
-        }
+        title={firstName ? `${getGreeting(isChinese)}, ${firstName}` : getGreeting(isChinese)}
         description={
           isChinese
             ? "查看今天的工作区运行情况。"
@@ -175,8 +164,7 @@ export default function DashboardPage() {
         <RecentActivity />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-      </div>
+      <div className="grid gap-4 lg:grid-cols-2"></div>
       <ActiveSessions />
 
       <QuickActions />

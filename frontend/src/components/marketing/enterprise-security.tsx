@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 interface EnterpriseSecurityProps {
   cta?: { label: string; href: string };
@@ -53,13 +53,18 @@ export function EnterpriseSecurity({ cta }: EnterpriseSecurityProps) {
           style={{ background: "oklch(from var(--color-brand) l c h / 0.18)" }}
         />
         <div className="relative z-10 flex h-full flex-col">
-          <span className="eyebrow-badge mb-6 self-start">Enterprise-ready</span>
+          <span className="eyebrow-badge mb-6 self-start">
+            {uiText("企业级能力", "Enterprise-ready")}
+          </span>
           <h2 className="text-display-md text-foreground [&_em]:font-accent [&_em]:text-foreground/85 [&_em]:font-normal [&_em]:italic">
-            Security and control, <em>built in.</em>
+            {uiText("安全与管控，", "Security and control, ")}
+            <em>{uiText("原生内置。", "built in.")}</em>
           </h2>
           <p className="text-foreground/70 mt-4 max-w-md text-base leading-relaxed">
-            From day one your data is encrypted, access-controlled and audited. Enterprise teams get
-            SSO, data residency and a dedicated success manager.
+            {uiText(
+              "从第一天起，数据就具备加密、访问控制和审计能力。企业团队还可获得 SSO、数据驻留和专属客户成功经理支持。",
+              "From day one your data is encrypted, access-controlled and audited. Enterprise teams get SSO, data residency and a dedicated success manager.",
+            )}
           </p>
 
           <div className="mt-auto pt-8">
@@ -95,11 +100,31 @@ export function EnterpriseSecurity({ cta }: EnterpriseSecurityProps) {
           >
             <f.icon className="h-5 w-5" strokeWidth={2} />
           </span>
-          <p className="text-foreground font-display mt-4 text-base font-bold">{f.title}</p>
-          <p className="text-foreground/65 mt-1 text-sm leading-relaxed">{f.body}</p>
+          <p className="text-foreground font-display mt-4 text-base font-bold">
+            {uiText(
+              {
+                "SSO & SAML": "SSO 与 SAML",
+                "Role-based access": "基于角色的访问控制",
+                "Encrypted end to end": "端到端加密",
+                "Audit logs": "审计日志",
+              }[f.title] ?? f.title,
+              f.title,
+            )}
+          </p>
+          <p className="text-foreground/65 mt-1 text-sm leading-relaxed">
+            {uiText(
+              {
+                "SSO & SAML": "支持 Okta、Google、Azure AD 以及任意 SAML 提供商一键登录。",
+                "Role-based access": "通过细粒度角色和权限控制，让每个人只看到应有内容。",
+                "Encrypted end to end":
+                  "静态数据使用 AES-256，传输使用 TLS 1.3。数据与密钥均由你掌控。",
+                "Audit logs": "记录所有关键操作，并可导出用于合规审查。",
+              }[f.title] ?? f.body,
+              f.body,
+            )}
+          </p>
         </div>
       ))}
     </div>
   );
 }
-

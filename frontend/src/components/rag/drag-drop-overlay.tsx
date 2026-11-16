@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
+import { uiText } from "@/lib/utils";
 
 interface DragDropOverlayProps {
   /** Called when files are dropped. Validate / size-check inside. */
@@ -24,8 +25,8 @@ interface DragDropOverlayProps {
 export function DragDropOverlay({
   onDrop,
   disabled,
-  title = "Drop files to upload",
-  description = "Files will be added to the active collection",
+  title = uiText("拖入文件上传", "Drop files to upload"),
+  description = uiText("文件会加入当前集合", "Files will be added to the active collection"),
   acceptedFormats,
 }: DragDropOverlayProps) {
   const [active, setActive] = useState(false);

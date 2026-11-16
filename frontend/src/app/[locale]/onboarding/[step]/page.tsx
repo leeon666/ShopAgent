@@ -23,9 +23,10 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale; step: string }>;
 }): Promise<Metadata> {
   const { locale, step } = await params;
+  const isChinese = locale === "zh";
   return pageMetadata({
-    title: "Get started",
-    description: "Set up your workspace.",
+    title: isChinese ? "开始使用" : "Get started",
+    description: isChinese ? "完成工作区初始设置。" : "Set up your workspace.",
     path: `/onboarding/${step}`,
     locale,
     noindex: true,

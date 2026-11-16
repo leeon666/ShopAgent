@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Download, ExternalLink, X } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { useFilePreviewStore } from "@/stores";
 import { getFileUrl } from "@/lib/file-api";
@@ -19,6 +20,7 @@ const STORAGE_KEY = "filePreviewPanelWidth";
  * edge to resize, and the chosen width persists across sessions.
  */
 export function FilePreviewPanel() {
+  const isChinese = useLocale() === "zh";
   const file = useFilePreviewStore((s) => s.file);
   const close = useFilePreviewStore((s) => s.close);
 
@@ -77,12 +79,12 @@ export function FilePreviewPanel() {
     <aside
       className="border-foreground/10 bg-card relative flex h-full max-w-full shrink-0 flex-col border-l"
       style={{ width: `${width}px` }}
-      aria-label="File preview"
+      aria-label={isChinese ? "文件预览" : "File preview"}
     >
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize file preview"
+        aria-label={isChinese ? "调整文件预览宽度" : "Resize file preview"}
         onMouseDown={onMouseDown}
         className={cn(
           "group absolute top-0 left-0 z-20 h-full w-1.5 -translate-x-1/2 cursor-col-resize",
@@ -101,7 +103,7 @@ export function FilePreviewPanel() {
             {file.filename}
           </p>
           <p className="text-foreground/50 truncate font-mono text-[10px] tracking-wider uppercase">
-            {ext ?? file.mime_type ?? "file"}
+            {ext ?? file.mime_type ?? (isChinese ? "文件" : "file")}
           </p>
         </div>
         <a
@@ -109,14 +111,14 @@ export function FilePreviewPanel() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-foreground/55 hover:bg-foreground/5 hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-          title="Open in new tab"
+          title={isChinese ? "在新标签页打开" : "Open in new tab"}
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <a
           href={downloadUrl}
           className="text-foreground/55 hover:bg-foreground/5 hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-          title="Download"
+          title={isChinese ? "下载" : "Download"}
         >
           <Download className="h-3.5 w-3.5" />
         </a>
@@ -124,8 +126,8 @@ export function FilePreviewPanel() {
           type="button"
           onClick={close}
           className="text-foreground/55 hover:bg-foreground/5 hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-          aria-label="Close preview"
-          title="Close"
+          aria-label={isChinese ? "关闭预览" : "Close preview"}
+          title={isChinese ? "关闭" : "Close"}
         >
           <X className="h-4 w-4" />
         </button>
@@ -148,4 +150,3 @@ export function FilePreviewPanel() {
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
-

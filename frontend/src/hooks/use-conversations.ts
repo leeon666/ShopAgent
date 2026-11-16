@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { qk } from "@/lib/query-keys";
-import { getErrorMessage, setUrlParam } from "@/lib/utils";
+import { getErrorMessage, setUrlParam, uiText } from "@/lib/utils";
 import { useConversationStore, useChatStore } from "@/stores";
 import type { Conversation, ConversationMessage, ConversationListResponse } from "@/types";
 
@@ -136,7 +136,10 @@ export function useConversations() {
         writeCache((prev) => [newConversation, ...prev]);
         return newConversation;
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to create conversation");
+        const message = getErrorMessage(
+          err,
+          uiText("创建对话失败", "Failed to create conversation"),
+        );
         setError(message);
         return null;
       } finally {
@@ -168,10 +171,13 @@ export function useConversations() {
         setCurrentMessages(response.items);
       } catch (err) {
         // Ignore aborted/superseded requests — they're expected on rapid switch.
-        if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+        if (
+          controller.signal.aborted ||
+          (err instanceof DOMException && err.name === "AbortError")
+        ) {
           return;
         }
-        const message = getErrorMessage(err, "Failed to fetch messages");
+        const message = getErrorMessage(err, uiText("加载消息失败", "Failed to fetch messages"));
         setError(message);
       } finally {
         // Only the most recent request owns the loading flag.
@@ -189,9 +195,12 @@ export function useConversations() {
       try {
         await apiClient.patch(`/conversations/${id}`, { is_archived: true });
         writeCache((prev) => prev.map((c) => (c.id === id ? { ...c, is_archived: true } : c)));
-        toast.success("Conversation archived");
+        toast.success(uiText("对话已归档", "Conversation archived"));
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to archive conversation");
+        const message = getErrorMessage(
+          err,
+          uiText("归档对话失败", "Failed to archive conversation"),
+        );
         setError(message);
         toast.error(message);
       }
@@ -204,9 +213,12 @@ export function useConversations() {
       try {
         await apiClient.patch(`/conversations/${id}`, { is_archived: false });
         writeCache((prev) => prev.map((c) => (c.id === id ? { ...c, is_archived: false } : c)));
-        toast.success("Conversation restored");
+        toast.success(uiText("对话已恢复", "Conversation restored"));
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to restore conversation");
+        const message = getErrorMessage(
+          err,
+          uiText("恢复对话失败", "Failed to restore conversation"),
+        );
         setError(message);
         toast.error(message);
       }
@@ -224,9 +236,12 @@ export function useConversations() {
         if (useConversationStore.getState().currentConversationId === id) {
           setCurrentConversationId(null);
         }
-        toast.success("Conversation deleted");
+        toast.success(uiText("对话已删除", "Conversation deleted"));
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to delete conversation");
+        const message = getErrorMessage(
+          err,
+          uiText("删除对话失败", "Failed to delete conversation"),
+        );
         setError(message);
         toast.error(message);
       }
@@ -239,9 +254,12 @@ export function useConversations() {
       try {
         await apiClient.patch(`/conversations/${id}`, { title });
         writeCache((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
-        toast.success("Conversation renamed");
+        toast.success(uiText("对话已重命名", "Conversation renamed"));
       } catch (err) {
-        const message = getErrorMessage(err, "Failed to rename conversation");
+        const message = getErrorMessage(
+          err,
+          uiText("重命名对话失败", "Failed to rename conversation"),
+        );
         setError(message);
         toast.error(message);
       }
@@ -251,16 +269,14 @@ export function useConversations() {
   const updateActiveKBs = useCallback(
     async (conversationId: string, kbIds: string[]) => {
       writeCache((prev) =>
-        prev.map((c) =>
-          c.id === conversationId ? { ...c, active_knowledge_base_ids: kbIds } : c,
-        ),
+        prev.map((c) => (c.id === conversationId ? { ...c, active_knowledge_base_ids: kbIds } : c)),
       );
       try {
         await apiClient.patch(`/conversations/${conversationId}`, {
           active_knowledge_base_ids: kbIds,
         });
       } catch {
-        toast.error("Failed to update knowledge bases");
+        toast.error(uiText("更新知识库失败", "Failed to update knowledge bases"));
       }
     },
     [writeCache],

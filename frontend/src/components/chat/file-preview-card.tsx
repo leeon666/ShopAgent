@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Download, FileAudio, FileCode, FileImage, FileText, FileVideo, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Download,
+  FileAudio,
+  FileCode,
+  FileImage,
+  FileText,
+  FileVideo,
+  Loader2,
+} from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 import { MarkdownContent } from "./markdown-content";
 
 export type PreviewKind =
@@ -213,7 +222,8 @@ function HtmlViewer({ url }: { url: string }) {
         if (!cancelled) setHtml(text);
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : uiText("加载失败", "Failed to load"));
       });
     return () => {
       cancelled = true;
@@ -227,7 +237,7 @@ function HtmlViewer({ url }: { url: string }) {
     <iframe
       sandbox=""
       srcDoc={html}
-      title="HTML preview"
+      title={uiText("HTML 预览", "HTML preview")}
       className="block min-h-0 w-full flex-1 border-0 bg-white"
     />
   );
@@ -245,7 +255,8 @@ function CsvViewer({ url }: { url: string }) {
         if (!cancelled) setRows(parseCsv(text));
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : uiText("加载失败", "Failed to load"));
       });
     return () => {
       cancelled = true;
@@ -254,7 +265,7 @@ function CsvViewer({ url }: { url: string }) {
 
   if (error) return <ErrorState message={error} />;
   if (rows === null) return <LoadingState />;
-  if (rows.length === 0) return <EmptyState message="Empty file" />;
+  if (rows.length === 0) return <EmptyState message={uiText("文件为空", "Empty file")} />;
 
   const [header, ...body] = rows;
   const MAX_ROWS = 500;
@@ -295,8 +306,10 @@ function CsvViewer({ url }: { url: string }) {
       </div>
       {truncated && (
         <p className="text-foreground/55 mt-2 text-center font-mono text-[10px] tracking-wider uppercase">
-          Showing {MAX_ROWS.toLocaleString()} of {body.length.toLocaleString()} rows · download to
-          see all
+          {uiText(
+            `显示 ${MAX_ROWS.toLocaleString()} / ${body.length.toLocaleString()} 行，请下载查看全部`,
+            `Showing ${MAX_ROWS.toLocaleString()} of ${body.length.toLocaleString()} rows · download to see all`,
+          )}
         </p>
       )}
     </div>
@@ -386,7 +399,8 @@ function TextViewer({ url, mode, lang }: TextViewerProps) {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : uiText("加载失败", "Failed to load"));
       });
     return () => {
       cancelled = true;
@@ -435,14 +449,16 @@ function BinaryFallback({ url, filename }: { url: string; filename: string }) {
       </div>
       <div>
         <p className="text-foreground text-sm font-medium">{filename}</p>
-        <p className="text-foreground/55 mt-1 text-xs">No inline preview for this file type.</p>
+        <p className="text-foreground/55 mt-1 text-xs">
+          {uiText("此文件类型暂不支持内嵌预览。", "No inline preview for this file type.")}
+        </p>
       </div>
       <a
         href={url}
         className="border-foreground/15 hover:border-foreground/40 hover:bg-foreground/5 mt-2 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[11px] tracking-wider uppercase transition-colors"
       >
         <Download className="h-3.5 w-3.5" />
-        Download
+        {uiText("下载", "Download")}
       </a>
     </div>
   );
@@ -452,7 +468,7 @@ function LoadingState() {
   return (
     <div className="text-foreground/55 flex min-h-0 flex-1 items-center justify-center gap-2 text-xs">
       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      Loading…
+      {uiText("加载中…", "Loading…")}
     </div>
   );
 }
@@ -461,7 +477,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="text-destructive/80 flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-xs">
       <AlertCircle className="h-5 w-5" />
-      <p>Couldn&apos;t load preview</p>
+      <p>{uiText("无法加载预览", "Couldn't load preview")}</p>
       <p className="text-foreground/55 font-mono text-[10px] tracking-wider uppercase">{message}</p>
     </div>
   );

@@ -63,46 +63,36 @@ export const TEASER_PLANS: TeaserPlan[] = [
   },
 ];
 
-/** Polish translations of the same plans. Returned by helpers when locale=pl. */
-export const TEASER_PLANS_PL: TeaserPlan[] = [
+/** Simplified Chinese copy for the public pricing teaser. */
+export const TEASER_PLANS_ZH: TeaserPlan[] = [
   {
-    name: "Starter",
-    price: "0 zł",
-    cadence: "/ miesiąc",
-    description: "Dla osób eksplorujących produkt.",
-    features: ["100 wiadomości / dzień", "1 podpięte źródło danych", "Wsparcie społeczności"],
-    cta: { label: "Zacznij za darmo", href: ROUTES.REGISTER },
+    name: "入门版",
+    price: "¥0",
+    cadence: "/ 月",
+    description: "适合个人了解和使用产品。",
+    features: ["每天 100 条消息", "连接 1 个数据源", "社区支持"],
+    cta: { label: "免费开始", href: ROUTES.REGISTER },
   },
   {
-    name: "Pro",
-    price: "129 zł",
-    cadence: "/ user / miesiąc",
-    description: "Dla małych zespołów robiących prawdziwą robotę.",
-    features: [
-      "Bez limitu wiadomości",
-      "10 podpiętych źródeł",
-      "Wsparcie email + czat",
-      "Automatyzacje workflow",
-    ],
-    cta: { label: "Zacznij 14-dniowy trial", href: ROUTES.REGISTER },
+    name: "专业版",
+    price: "¥29",
+    cadence: "/ 用户 / 月",
+    description: "适合需要高效率协作的小团队。",
+    features: ["不限消息数量", "连接 10 个数据源", "邮件与在线客服支持", "工作流自动化"],
+    cta: { label: "开始 14 天试用", href: ROUTES.REGISTER },
     featured: true,
-    badge: "Najpopularniejszy",
+    badge: "最受欢迎",
   },
   {
-    name: "Business",
-    price: "399 zł",
-    cadence: "/ user / miesiąc",
-    description: "Dla organizacji wdrażających rozwiązanie szeroko.",
-    features: [
-      "Wszystko z Pro",
-      "SSO + audit log",
-      "Role-based access control",
-      "Dedykowany success manager",
-    ],
-    cta: { label: "Pogadaj ze sprzedażą", href: ROUTES.CONTACT },
+    name: "企业版",
+    price: "¥99",
+    cadence: "/ 用户 / 月",
+    description: "适合跨团队部署和统一管理。",
+    features: ["包含专业版全部能力", "SSO 与审计日志", "基于角色的访问控制", "专属客户成功经理"],
+    cta: { label: "联系销售", href: ROUTES.CONTACT },
   },
 ];
 
 export function getTeaserPlans(locale: string): TeaserPlan[] {
-  return locale === "pl" ? TEASER_PLANS_PL : TEASER_PLANS;
+  return locale === "zh" ? TEASER_PLANS_ZH : TEASER_PLANS;
 }

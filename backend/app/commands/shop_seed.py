@@ -30,7 +30,7 @@ def seed_shop(password: str) -> None:
                     UserCreate(
                         email="admin@shopagent.example.com",
                         password=password,
-                        full_name="ShopAgent Admin",
+                        full_name="演示管理员",
                     )
                 )
             admin.role = UserRole.ADMIN.value
@@ -42,7 +42,7 @@ def seed_shop(password: str) -> None:
                     UserCreate(
                         email="demo@shopagent.example.com",
                         password=password,
-                        full_name="Demo Customer",
+                        full_name="演示客户",
                     )
                 )
             customer.is_active = True
@@ -71,19 +71,19 @@ def seed_shop(password: str) -> None:
                 return product
 
             headphones = await ensure_product(
-                "Aurora 降噪耳机",
+                "极光降噪耳机",
                 "支持七天无理由退货的蓝牙降噪耳机。",
                 "399.00",
                 50,
             )
             lamp = await ensure_product(
-                "Luma 智能台灯",
+                "流明智能台灯",
                 "高显色桌面灯, 带一年质保。",
                 "269.00",
                 40,
             )
             mug = await ensure_product(
-                "Ceramic Daily 马克杯",
+                "日常陶瓷马克杯",
                 "易碎陶瓷杯, 发货使用防震包装。",
                 "89.00",
                 80,

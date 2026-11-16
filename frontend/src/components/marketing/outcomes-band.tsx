@@ -1,12 +1,13 @@
 import { Clock, MessageSquare, Search, Zap, type LucideIcon } from "lucide-react";
 
 import { AnimatedNumber } from "./animated-number";
+import { uiText } from "@/lib/utils";
 
 const CARD =
   "group border-foreground/12 bg-card lift hover:border-foreground/25 rounded-2xl border p-7 transition-colors";
 
 const METRICS: { icon: LucideIcon; value: string; label: string }[] = [
-  { icon: Clock, value: "10 hrs", label: "saved per person every week" },
+  { icon: Clock, value: "10 小时", label: "saved per person every week" },
   { icon: Zap, value: "3×", label: "faster team onboarding" },
   { icon: MessageSquare, value: "92%", label: "of questions answered instantly" },
   { icon: Search, value: "40%", label: "less time spent searching" },
@@ -17,10 +18,11 @@ export function OutcomesBand() {
     <>
       <div className="mb-14 max-w-2xl">
         <div className="mb-5">
-          <span className="eyebrow-badge">Outcomes</span>
+          <span className="eyebrow-badge">{uiText("实际效果", "Outcomes")}</span>
         </div>
         <h2 className="text-display-lg text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          Real results, <em>not just features.</em>
+          {uiText("真实结果，", "Real results, ")}
+          <em>{uiText("不只是功能列表。", "not just features.")}</em>
         </h2>
       </div>
 
@@ -36,7 +38,17 @@ export function OutcomesBand() {
             <div className="text-foreground mt-6 font-mono text-5xl font-medium tracking-tight tabular-nums">
               <AnimatedNumber value={m.value} />
             </div>
-            <p className="text-foreground/60 mt-2 text-sm leading-relaxed">{m.label}</p>
+            <p className="text-foreground/60 mt-2 text-sm leading-relaxed">
+              {uiText(
+                {
+                  "saved per person every week": "每人每周节省时间",
+                  "faster team onboarding": "团队上手速度",
+                  "of questions answered instantly": "问题即时得到回答",
+                  "less time spent searching": "搜索耗时减少",
+                }[m.label] ?? m.label,
+                m.label,
+              )}
+            </p>
           </div>
         ))}
       </div>

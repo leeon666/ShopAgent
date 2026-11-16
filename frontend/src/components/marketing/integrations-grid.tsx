@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { uiText } from "@/lib/utils";
 
 import { BrandIcon } from "./brand-icon";
 
@@ -29,14 +30,17 @@ export function IntegrationsGrid({ cta }: IntegrationsGridProps) {
     <>
       <div className="mb-14 max-w-2xl">
         <div className="mb-5">
-          <span className="eyebrow-badge">Integrations</span>
+          <span className="eyebrow-badge">{uiText("集成", "Integrations")}</span>
         </div>
         <h2 className="text-display-lg text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          Works with <em>your stack.</em>
+          {uiText("与你现有的", "Works with ")}
+          <em>{uiText("技术栈协同工作。", "your stack.")}</em>
         </h2>
         <p className="text-foreground/70 mt-5 max-w-xl text-lg leading-relaxed">
-          Connect the tools your team already lives in. New integrations ship every month — and the
-          REST API covers the rest.
+          {uiText(
+            "连接团队已经在使用的工具。每月都会新增集成，其余工具可通过 REST API 接入。",
+            "Connect the tools your team already lives in. New integrations ship every month — and the REST API covers the rest.",
+          )}
         </p>
       </div>
 

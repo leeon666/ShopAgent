@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sun, Monitor } from "lucide-react";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useThemeStore, Theme, getResolvedTheme } from "@/stores/theme-store";
 
@@ -11,6 +12,7 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
+  const isChinese = useLocale() === "zh";
   const { theme, setTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
 
@@ -31,7 +33,12 @@ export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
   // Render placeholder during SSR to prevent hydration mismatch
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" className={className} aria-label="Toggle theme">
+      <Button
+        variant="ghost"
+        size="icon"
+        className={className}
+        aria-label={isChinese ? "切换主题" : "Toggle theme"}
+      >
         <Sun className="h-5 w-5" />
       </Button>
     );
@@ -44,11 +51,13 @@ export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
         size="icon"
         onClick={cycleTheme}
         className={className}
-        aria-label={`Switch theme (current: ${theme})`}
-        title={`Theme: ${theme}`}
+        aria-label={isChinese ? `切换主题（当前：${theme}）` : `Switch theme (current: ${theme})`}
+        title={isChinese ? `主题：${theme}` : `Theme: ${theme}`}
       >
         {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-        {theme === "system" && <span className="sr-only">(following system)</span>}
+        {theme === "system" && (
+          <span className="sr-only">{isChinese ? "（跟随系统）" : "(following system)"}</span>
+        )}
       </Button>
     );
   }
@@ -59,8 +68,8 @@ export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
         variant={theme === "light" ? "default" : "ghost"}
         size="icon"
         onClick={() => setTheme("light")}
-        aria-label="Light mode"
-        title="Light mode"
+        aria-label={isChinese ? "浅色模式" : "Light mode"}
+        title={isChinese ? "浅色模式" : "Light mode"}
       >
         <Sun className="h-4 w-4" />
       </Button>
@@ -68,8 +77,8 @@ export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
         variant={theme === "dark" ? "default" : "ghost"}
         size="icon"
         onClick={() => setTheme("dark")}
-        aria-label="Dark mode"
-        title="Dark mode"
+        aria-label={isChinese ? "深色模式" : "Dark mode"}
+        title={isChinese ? "深色模式" : "Dark mode"}
       >
         <Moon className="h-4 w-4" />
       </Button>
@@ -77,8 +86,8 @@ export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
         variant={theme === "system" ? "default" : "ghost"}
         size="icon"
         onClick={() => setTheme("system")}
-        aria-label="System theme"
-        title="System theme"
+        aria-label={isChinese ? "跟随系统" : "System theme"}
+        title={isChinese ? "跟随系统" : "System theme"}
       >
         <Monitor className="h-4 w-4" />
       </Button>

@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { cn, isAppAdmin } from "@/lib/utils";
 import { APP_NAME, ROUTES } from "@/lib/constants";
-import {
-  LayoutDashboard,
-  MessageSquare,
-  ShoppingBag,
-  UserCircle,
-  ShieldAlert,
-} from "lucide-react";
+import { LayoutDashboard, MessageSquare, ShoppingBag, UserCircle, ShieldAlert } from "lucide-react";
 import { useSidebarStore, useAuthStore } from "@/stores";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui";
 
@@ -24,6 +18,7 @@ const navigation = [
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const isChinese = useLocale() === "zh";
   const { user } = useAuthStore();
   const t = useTranslations("nav");
 
@@ -62,7 +57,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           )}
         >
           <ShieldAlert className="h-5 w-5" />
-          Admin
+          {isChinese ? "后台管理" : "Admin"}
         </Link>
       )}
     </nav>

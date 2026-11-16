@@ -5,15 +5,15 @@ import dynamic from "next/dynamic";
 import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 // Recharts is only needed for the optional sparkline, so it's split into a child
 // component and loaded on demand — keeping recharts out of the bundle of every
 // page that renders a StatCard without `spark` data.
-const StatCardSpark = dynamic(
-  () => import("./stat-card-spark").then((m) => m.StatCardSpark),
-  { ssr: false, loading: () => <div className="h-full w-full" /> },
-);
+const StatCardSpark = dynamic(() => import("./stat-card-spark").then((m) => m.StatCardSpark), {
+  ssr: false,
+  loading: () => <div className="h-full w-full" />,
+});
 
 interface StatCardProps {
   label: string;
@@ -44,7 +44,7 @@ export function StatCard({
   value,
   unit,
   delta,
-  deltaLabel = "vs prior",
+  deltaLabel = uiText("较上期", "vs prior"),
   footer,
   spark,
   icon: Icon,

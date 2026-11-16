@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { useAuth } from "@/hooks";
 import { ThemeToggle } from "@/components/theme";
 import { LanguageSwitcherCompact } from "@/components/language-switcher";
@@ -14,6 +15,7 @@ interface LandingNavProps {
 }
 
 export function LandingNav({ signInLabel, getStartedLabel, dashboardLabel }: LandingNavProps) {
+  const isChinese = useLocale() === "zh";
   const { user, isAuthenticated, logout } = useAuth();
 
   return (
@@ -28,7 +30,7 @@ export function LandingNav({ signInLabel, getStartedLabel, dashboardLabel }: Lan
             href={ROUTES.PRICING}
             className="text-muted-foreground hover:text-foreground hidden rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:inline-flex"
           >
-            Pricing
+            {isChinese ? "价格" : "Pricing"}
           </Link>
           <LanguageSwitcherCompact />
           <ThemeToggle />
@@ -47,7 +49,7 @@ export function LandingNav({ signInLabel, getStartedLabel, dashboardLabel }: Lan
               <button
                 onClick={logout}
                 className="text-muted-foreground hover:text-foreground rounded-full p-1.5 transition-colors"
-                title="Logout"
+                title={isChinese ? "退出登录" : "Logout"}
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>

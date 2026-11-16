@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 
 import { LoadingState } from "@/components/states";
 import { apiClient } from "@/lib/api-client";
@@ -10,6 +11,7 @@ import type { User } from "@/types";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const isChinese = useLocale() === "zh";
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +46,7 @@ export default function AuthCallbackPage() {
         router.replace("/dashboard");
       } catch {
         if (!cancelled) {
-          setError("Sign-in failed");
+          setError(isChinese ? "登录失败" : "Sign-in failed");
           router.replace("/login?error=oauth_failed");
         }
       }
@@ -52,14 +54,19 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [isChinese, router, searchParams]);
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       {error ? (
-        <p className="text-foreground/65 text-sm">Sign-in failed. Redirecting…</p>
+        <p className="text-foreground/65 text-sm">
+          {isChinese ? "登录失败，正在跳转…" : "Sign-in failed. Redirecting…"}
+        </p>
       ) : (
-        <LoadingState variant="dot-pulse" label="Completing sign-in…" />
+        <LoadingState
+          variant="dot-pulse"
+          label={isChinese ? "正在完成登录…" : "Completing sign-in…"}
+        />
       )}
     </div>
   );

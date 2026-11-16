@@ -2,14 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  CreditCard,
-  LayoutDashboard,
-  MessageSquare,
-  Star,
-  Users,
-} from "lucide-react";
+import { useLocale } from "next-intl";
+import { Activity, CreditCard, LayoutDashboard, MessageSquare, Star, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ROUTES } from "@/lib/constants";
@@ -22,26 +16,36 @@ interface NavItem {
   description?: string;
 }
 
-const ITEMS: NavItem[] = [
-  { label: "Overview", href: ROUTES.ADMIN, icon: LayoutDashboard },
-  { label: "Users", href: ROUTES.ADMIN_USERS, icon: Users },
-  { label: "Conversations", href: ROUTES.ADMIN_CONVERSATIONS, icon: MessageSquare },
-  { label: "Ratings", href: ROUTES.ADMIN_RATINGS, icon: Star },
-  { label: "Stripe events", href: ROUTES.ADMIN_STRIPE_EVENTS, icon: CreditCard },
-  { label: "System health", href: ROUTES.ADMIN_SYSTEM, icon: Activity },
-];
-
 export function AdminNav() {
   const pathname = usePathname();
+  const isChinese = useLocale() === "zh";
   const stripped = pathname.replace(/^\/[a-z]{2}/, "");
+  const items: NavItem[] = [
+    { label: isChinese ? "概览" : "Overview", href: ROUTES.ADMIN, icon: LayoutDashboard },
+    { label: isChinese ? "用户" : "Users", href: ROUTES.ADMIN_USERS, icon: Users },
+    {
+      label: isChinese ? "对话" : "Conversations",
+      href: ROUTES.ADMIN_CONVERSATIONS,
+      icon: MessageSquare,
+    },
+    { label: isChinese ? "回复评价" : "Ratings", href: ROUTES.ADMIN_RATINGS, icon: Star },
+    {
+      label: isChinese ? "Stripe 事件" : "Stripe events",
+      href: ROUTES.ADMIN_STRIPE_EVENTS,
+      icon: CreditCard,
+    },
+    { label: isChinese ? "系统状态" : "System health", href: ROUTES.ADMIN_SYSTEM, icon: Activity },
+  ];
 
   return (
-    <>      <nav className="hidden lg:block">
+    <>
+      {" "}
+      <nav className="hidden lg:block">
         <p className="text-foreground/45 mb-3 px-3 font-mono text-[10px] tracking-wider uppercase">
-          Admin
+          {isChinese ? "后台管理" : "Admin"}
         </p>
         <ul className="space-y-0.5">
-          {ITEMS.map((item) => {
+          {items.map((item) => {
             const active =
               item.href === "/admin"
                 ? stripped === "/admin"
@@ -72,8 +76,9 @@ export function AdminNav() {
             );
           })}
         </ul>
-      </nav>      <nav className="-mx-3 flex scrollbar-thin gap-1.5 overflow-x-auto px-3 pb-2 lg:hidden">
-        {ITEMS.map((item) => {
+      </nav>{" "}
+      <nav className="-mx-3 flex scrollbar-thin gap-1.5 overflow-x-auto px-3 pb-2 lg:hidden">
+        {items.map((item) => {
           const active =
             item.href === "/admin"
               ? stripped === "/admin"

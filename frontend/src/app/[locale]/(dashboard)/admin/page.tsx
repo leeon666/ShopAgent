@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { LoadingState } from "@/components/states";
@@ -45,8 +46,8 @@ const EVENT_ICON: Record<RecentEvent["type"], LucideIcon> = {
   rating_low: Star,
 };
 
-
 export default function AdminOverviewPage() {
+  const isChinese = useLocale() === "zh";
   const statsQuery = useQuery({
     queryKey: ["admin", "stats"],
     queryFn: async (): Promise<AdminStats> => {
@@ -66,7 +67,9 @@ export default function AdminOverviewPage() {
   const eventsQuery = useQuery({
     queryKey: ["admin", "events"],
     queryFn: async (): Promise<RecentEvent[]> => {
-      const events = await apiClient.get<{ items: RecentEvent[] }>("/admin/events").catch(() => null);
+      const events = await apiClient
+        .get<{ items: RecentEvent[] }>("/admin/events")
+        .catch(() => null);
       if (events) return events.items.slice(0, 8);
       const convs = await apiClient
         .get<{
@@ -76,8 +79,12 @@ export default function AdminOverviewPage() {
       return convs.items.map((c) => ({
         id: c.id,
         type: "conversation_created" as const,
-        title: c.title || "New conversation",
-        description: c.user_email ? `by ${c.user_email}` : "",
+        title: c.title || (isChinese ? "新对话" : "New conversation"),
+        description: c.user_email
+          ? isChinese
+            ? `创建者：${c.user_email}`
+            : `by ${c.user_email}`
+          : "",
         timestamp: c.created_at,
       }));
     },
@@ -99,7 +106,7 @@ export default function AdminOverviewPage() {
           }}
         >
           <RefreshCw className={refreshing ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
-          Refresh
+          {isChinese ? "刷新" : "Refresh"}
         </Button>
       </div>
 
@@ -107,58 +114,81 @@ export default function AdminOverviewPage() {
         <LoadingState variant="stats" rows={4} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total users" value={(stats?.total_users ?? 0).toLocaleString()} icon={Users} />
           <StatCard
-            label="Active 24h"
+            label={isChinese ? "用户总数" : "Total users"}
+            value={(stats?.total_users ?? 0).toLocaleString()}
+            icon={Users}
+          />
+          <StatCard
+            label={isChinese ? "24 小时活跃" : "Active 24h"}
             value={(stats?.active_users_24h ?? 0).toLocaleString()}
             icon={Activity}
           />
           <StatCard
-            label="Conversations"
+            label={isChinese ? "对话数" : "Conversations"}
             value={(stats?.total_conversations ?? 0).toLocaleString()}
             icon={MessageSquare}
           />
           <StatCard
-            label="MRR"
-            value={
-              typeof stats?.mrr_cents === "number"
-                ? formatCurrency(stats.mrr_cents)
-                : "—"
-            }
+            label={isChinese ? "月度经常性收入" : "MRR"}
+            value={typeof stats?.mrr_cents === "number" ? formatCurrency(stats.mrr_cents) : "—"}
             icon={CreditCard}
           />
         </div>
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <QuickLink href={ROUTES.ADMIN_USERS} icon={Users} title="Manage users" description="Search, suspend, impersonate" />
+        <QuickLink
+          href={ROUTES.ADMIN_USERS}
+          icon={Users}
+          title={isChinese ? "管理用户" : "Manage users"}
+          description={isChinese ? "搜索、停用和模拟登录" : "Search, suspend, impersonate"}
+        />
         <QuickLink
           href={ROUTES.ADMIN_CONVERSATIONS}
           icon={MessageSquare}
-          title="Browse chats"
-          description="All conversations across users"
+          title={isChinese ? "浏览对话" : "Browse chats"}
+          description={isChinese ? "查看所有用户的对话" : "All conversations across users"}
         />
         <QuickLink
           href={ROUTES.ADMIN_STRIPE_EVENTS}
           icon={CreditCard}
-          title="Stripe events"
-          description="Replay webhooks, debug billing"
+          title={isChinese ? "Stripe 事件" : "Stripe events"}
+          description={isChinese ? "重放 Webhook、排查账单问题" : "Replay webhooks, debug billing"}
         />
-        <QuickLink href={ROUTES.ADMIN_SYSTEM} icon={Activity} title="System health" description="Per-service status & uptime" />
-        <QuickLink href={ROUTES.ADMIN_RATINGS} icon={Star} title="Response ratings" description="Quality signals from users" />
+        <QuickLink
+          href={ROUTES.ADMIN_SYSTEM}
+          icon={Activity}
+          title={isChinese ? "系统状态" : "System health"}
+          description={isChinese ? "各项服务状态与可用率" : "Per-service status & uptime"}
+        />
+        <QuickLink
+          href={ROUTES.ADMIN_RATINGS}
+          icon={Star}
+          title={isChinese ? "回复评价" : "Response ratings"}
+          description={isChinese ? "来自用户的质量反馈" : "Quality signals from users"}
+        />
       </section>
 
       <section className="border-border bg-card rounded-xl border">
         <div className="border-border border-b px-5 py-4">
-          <h2 className="text-foreground text-sm font-semibold">Recent activity</h2>
-          <p className="text-muted-foreground text-xs">Workspace-wide events across all users.</p>
+          <h2 className="text-foreground text-sm font-semibold">
+            {isChinese ? "最近动态" : "Recent activity"}
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            {isChinese
+              ? "整个工作区所有用户的最新事件。"
+              : "Workspace-wide events across all users."}
+          </p>
         </div>
         {events === undefined ? (
           <div className="p-5">
             <LoadingState variant="skeleton-list" rows={5} />
           </div>
         ) : events.length === 0 ? (
-          <div className="text-muted-foreground px-5 py-12 text-center text-sm">No recent events.</div>
+          <div className="text-muted-foreground px-5 py-12 text-center text-sm">
+            {isChinese ? "暂无最近动态。" : "No recent events."}
+          </div>
         ) : (
           <ul className="divide-border divide-y">
             {events.map((e) => {

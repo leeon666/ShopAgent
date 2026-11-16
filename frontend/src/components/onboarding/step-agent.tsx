@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,24 @@ const AGENTS: AgentOption[] = [
 
 export function StepAgent() {
   const router = useRouter();
+  const isChinese = useLocale() === "zh";
+  const agents = AGENTS.map((agent) => ({
+    ...agent,
+    tagline: isChinese
+      ? ({
+          pydantic_ai: "类型安全、快速、工程化",
+          langgraph: "有状态图与复杂工作流",
+          deepagents: "长周期自主任务规划",
+        }[agent.id] ?? agent.tagline)
+      : agent.tagline,
+    description: isChinese
+      ? ({
+          pydantic_ai: "推荐的默认方案：类型安全工具、结构化输出与完整遥测。",
+          langgraph: "适合带分支逻辑和持久状态的多步骤 Agent。",
+          deepagents: "适合需要连续调用大量工具的自主任务。",
+        }[agent.id] ?? agent.description)
+      : agent.description,
+  }));
   const [selected, setSelected] = useState<string>(
     () => AGENTS.find((a) => a.recommended)?.id ?? AGENTS[0]!.id,
   );
@@ -55,11 +74,15 @@ export function StepAgent() {
   return (
     <OnboardingShell
       step="agent"
-      title="Pick your agent framework"
-      description="Each comes wired with streaming, tool calls, and observability. You can switch later."
+      title={isChinese ? "选择 Agent 框架" : "Pick your agent framework"}
+      description={
+        isChinese
+          ? "每个框架都支持流式输出、工具调用和可观测性，之后也可以切换。"
+          : "Each comes wired with streaming, tool calls, and observability. You can switch later."
+      }
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        {AGENTS.map((agent) => {
+        {agents.map((agent) => {
           const isSelected = selected === agent.id;
           return (
             <button
@@ -68,9 +91,7 @@ export function StepAgent() {
               onClick={() => setSelected(agent.id)}
               className={cn(
                 "bg-card relative flex flex-col gap-2 rounded-xl border p-5 text-left transition-colors",
-                isSelected
-                  ? "border-foreground"
-                  : "border-border hover:border-foreground/30",
+                isSelected ? "border-foreground" : "border-border hover:border-foreground/30",
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -94,7 +115,7 @@ export function StepAgent() {
               </p>
               {agent.recommended && (
                 <span className="bg-muted text-foreground border-border absolute -top-2 right-4 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
-                  Recommended
+                  {isChinese ? "推荐" : "Recommended"}
                 </span>
               )}
             </button>
@@ -103,7 +124,7 @@ export function StepAgent() {
       </div>
 
       <Button size="lg" className="mt-8" onClick={handleNext}>
-        Continue
+        {isChinese ? "继续" : "Continue"}
         <ArrowRight className="h-4 w-4" />
       </Button>
     </OnboardingShell>

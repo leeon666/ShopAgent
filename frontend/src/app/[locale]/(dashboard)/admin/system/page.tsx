@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertCircle,
@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { LoadingState } from "@/components/states";
 import { Button } from "@/components/ui";
@@ -54,21 +55,21 @@ function statusFromString(s?: string): ServiceStatus {
   return "unknown";
 }
 
-function buildServices(resp: BackendHealthResp | null): ServiceHealth[] {
+function buildServices(resp: BackendHealthResp | null, isChinese: boolean): ServiceHealth[] {
   const overall = statusFromString(resp?.status);
   return [
     {
       key: "api",
       name: "API",
-      description: "REST + WebSocket gateway",
+      description: isChinese ? "REST 与 WebSocket 网关" : "REST + WebSocket gateway",
       icon: Server,
       status: overall === "unknown" ? "operational" : overall,
       uptime90d: 99.94,
     },
     {
       key: "database",
-      name: "Database",
-      description: "PostgreSQL primary",
+      name: isChinese ? "数据库" : "Database",
+      description: isChinese ? "PostgreSQL 主库" : "PostgreSQL primary",
       icon: Database,
       status: statusFromString(resp?.database?.status),
       uptime90d: 99.97,
@@ -76,8 +77,8 @@ function buildServices(resp: BackendHealthResp | null): ServiceHealth[] {
     },
     {
       key: "redis",
-      name: "Redis",
-      description: "Cache & queue broker",
+      name: isChinese ? "Redis" : "Redis",
+      description: isChinese ? "缓存与队列服务" : "Cache & queue broker",
       icon: Zap,
       status: statusFromString(resp?.redis?.status),
       uptime90d: 99.96,
@@ -85,8 +86,8 @@ function buildServices(resp: BackendHealthResp | null): ServiceHealth[] {
     },
     {
       key: "vector",
-      name: "Vector store",
-      description: "RAG embeddings backend",
+      name: isChinese ? "向量数据库" : "Vector store",
+      description: isChinese ? "RAG 向量检索后端" : "RAG embeddings backend",
       icon: HardDrive,
       status: statusFromString(resp?.vector_store?.status),
       uptime90d: 99.91,
@@ -94,8 +95,14 @@ function buildServices(resp: BackendHealthResp | null): ServiceHealth[] {
     },
     {
       key: "llm",
-      name: "LLM provider",
-      description: resp?.llm?.provider ? `Provider: ${resp.llm.provider}` : "Default model API",
+      name: isChinese ? "大模型服务" : "LLM provider",
+      description: resp?.llm?.provider
+        ? isChinese
+          ? `服务商：${resp.llm.provider}`
+          : `Provider: ${resp.llm.provider}`
+        : isChinese
+          ? "默认模型接口"
+          : "Default model API",
       icon: Cpu,
       status: statusFromString(resp?.llm?.status),
       uptime90d: 99.87,
@@ -103,15 +110,15 @@ function buildServices(resp: BackendHealthResp | null): ServiceHealth[] {
     {
       key: "stripe",
       name: "Stripe API",
-      description: "Billing & payments",
+      description: isChinese ? "账单与支付" : "Billing & payments",
       icon: Wifi,
       status: statusFromString(resp?.stripe?.status),
       uptime90d: 99.99,
     },
     {
       key: "worker",
-      name: "Background worker",
-      description: "Document ingestion + sync jobs",
+      name: isChinese ? "后台任务" : "Background worker",
+      description: isChinese ? "文档入库与同步任务" : "Document ingestion + sync jobs",
       icon: Activity,
       status: statusFromString(resp?.worker?.status),
       uptime90d: 99.89,
@@ -126,13 +133,6 @@ const STATUS_DOT: Record<ServiceStatus, string> = {
   unknown: "bg-muted-foreground",
 };
 
-const STATUS_LABEL: Record<ServiceStatus, string> = {
-  operational: "Operational",
-  degraded: "Degraded",
-  outage: "Outage",
-  unknown: "Unknown",
-};
-
 const STATUS_TEXT: Record<ServiceStatus, string> = {
   operational: "text-foreground",
   degraded: "text-foreground",
@@ -141,13 +141,14 @@ const STATUS_TEXT: Record<ServiceStatus, string> = {
 };
 
 export default function SystemHealthPage() {
+  const isChinese = useLocale() === "zh";
   const [resp, setResp] = useState<BackendHealthResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [auto, setAuto] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -157,23 +158,29 @@ export default function SystemHealthPage() {
       setResp(data);
       setLastChecked(new Date());
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to fetch health"));
+      setError(getErrorMessage(err, isChinese ? "获取健康状态失败" : "Failed to fetch health"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [isChinese]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     if (!auto) return;
     const id = window.setInterval(load, REFRESH_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [auto]);
+  }, [auto, load]);
 
-  const services = useMemo(() => buildServices(resp), [resp]);
+  const services = useMemo(() => buildServices(resp, isChinese), [resp, isChinese]);
+  const statusLabels: Record<ServiceStatus, string> = {
+    operational: isChinese ? "运行正常" : "Operational",
+    degraded: isChinese ? "性能下降" : "Degraded",
+    outage: isChinese ? "服务中断" : "Outage",
+    unknown: isChinese ? "未知" : "Unknown",
+  };
   const overall: ServiceStatus = useMemo(() => {
     if (services.some((s) => s.status === "outage")) return "outage";
     if (services.some((s) => s.status === "degraded")) return "degraded";
@@ -184,12 +191,20 @@ export default function SystemHealthPage() {
 
   const overallLabel =
     overall === "operational"
-      ? "All systems operational"
+      ? isChinese
+        ? "所有系统运行正常"
+        : "All systems operational"
       : overall === "outage"
-        ? "Active outage"
+        ? isChinese
+          ? "存在服务中断"
+          : "Active outage"
         : overall === "degraded"
-          ? "Degraded performance"
-          : "Status unknown";
+          ? isChinese
+            ? "整体性能下降"
+            : "Degraded performance"
+          : isChinese
+            ? "状态未知"
+            : "Status unknown";
 
   return (
     <div className="space-y-6">
@@ -202,16 +217,13 @@ export default function SystemHealthPage() {
         >
           <span
             aria-hidden
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              auto ? "bg-chart" : "bg-muted-foreground",
-            )}
+            className={cn("h-1.5 w-1.5 rounded-full", auto ? "bg-chart" : "bg-muted-foreground")}
           />
-          Auto-refresh {auto ? "on" : "off"}
+          {isChinese ? `自动刷新：${auto ? "开" : "关"}` : `Auto-refresh ${auto ? "on" : "off"}`}
         </Button>
         <Button size="sm" variant="outline" onClick={load}>
           <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          Refresh
+          {isChinese ? "刷新" : "Refresh"}
         </Button>
       </div>
 
@@ -226,19 +238,19 @@ export default function SystemHealthPage() {
               )}
             </span>
             <div>
-              <p className="text-muted-foreground text-xs">Overall status</p>
+              <p className="text-muted-foreground text-xs">
+                {isChinese ? "整体状态" : "Overall status"}
+              </p>
               <div className="mt-1 flex items-center gap-2">
-                <span
-                  aria-hidden
-                  className={cn("h-2 w-2 rounded-full", STATUS_DOT[overall])}
-                />
+                <span aria-hidden className={cn("h-2 w-2 rounded-full", STATUS_DOT[overall])} />
                 <p className="text-foreground text-base font-semibold">{overallLabel}</p>
               </div>
             </div>
           </div>
           {lastChecked && (
             <span className="text-muted-foreground text-xs">
-              Checked {lastChecked.toLocaleTimeString()}
+              {isChinese ? "检查于 " : "Checked "}
+              {lastChecked.toLocaleTimeString(isChinese ? "zh-CN" : "en-US")}
             </span>
           )}
         </div>
@@ -249,15 +261,21 @@ export default function SystemHealthPage() {
       ) : error ? (
         <div className="border-border bg-card rounded-xl border p-8 text-center">
           <AlertCircle className="text-destructive mx-auto h-6 w-6" />
-          <p className="text-foreground mt-3 text-sm font-medium">Couldn&apos;t fetch health</p>
+          <p className="text-foreground mt-3 text-sm font-medium">
+            {isChinese ? "无法获取健康状态" : "Couldn't fetch health"}
+          </p>
           <p className="text-muted-foreground mt-1 text-xs">{error}</p>
         </div>
       ) : (
         <section className="border-border bg-card rounded-xl border">
           <div className="border-border border-b px-5 py-4">
-            <h2 className="text-foreground text-sm font-semibold">Services</h2>
+            <h2 className="text-foreground text-sm font-semibold">
+              {isChinese ? "服务列表" : "Services"}
+            </h2>
             <p className="text-muted-foreground text-xs">
-              Live readiness for each backing service. Auto-refreshes every 30s.
+              {isChinese
+                ? "展示各个后端服务的实时就绪状态，每 30 秒自动刷新。"
+                : "Live readiness for each backing service. Auto-refreshes every 30s."}
             </p>
           </div>
           <ul className="divide-border divide-y">
@@ -271,25 +289,18 @@ export default function SystemHealthPage() {
                   <p className="text-muted-foreground truncate text-xs">{s.description}</p>
                 </div>
                 <div className="hidden text-right sm:block">
-                  <p className="text-foreground text-xs tabular-nums">
-                    {s.uptime90d.toFixed(2)}%
-                  </p>
+                  <p className="text-foreground text-xs tabular-nums">{s.uptime90d.toFixed(2)}%</p>
                   <p className="text-muted-foreground text-[11px]">
-                    90d{typeof s.latencyMs === "number" ? ` · p50 ${s.latencyMs}ms` : ""}
+                    {isChinese ? "90 天" : "90d"}
+                    {typeof s.latencyMs === "number" ? ` · p50 ${s.latencyMs}ms` : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 pl-1">
+                  <span aria-hidden className={cn("h-2 w-2 rounded-full", STATUS_DOT[s.status])} />
                   <span
-                    aria-hidden
-                    className={cn("h-2 w-2 rounded-full", STATUS_DOT[s.status])}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium whitespace-nowrap",
-                      STATUS_TEXT[s.status],
-                    )}
+                    className={cn("text-xs font-medium whitespace-nowrap", STATUS_TEXT[s.status])}
                   >
-                    {STATUS_LABEL[s.status]}
+                    {statusLabels[s.status]}
                   </span>
                 </div>
               </li>
@@ -299,8 +310,11 @@ export default function SystemHealthPage() {
       )}
 
       <p className="text-muted-foreground text-xs">
-        Backend wishlist: <code className="font-mono">/health/ready</code> with per-service detail.
-        90d uptime is currently illustrative.
+        {isChinese ? "后端建议：由 " : "Backend wishlist: "}
+        <code className="font-mono">/health/ready</code>
+        {isChinese
+          ? " 返回各服务详情。当前 90 天可用率为示意数据。"
+          : " with per-service detail. 90d uptime is currently illustrative."}
       </p>
     </div>
   );

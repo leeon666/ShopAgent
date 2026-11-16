@@ -33,7 +33,7 @@ export default function ComponentGalleryPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-border bg-card rounded-xl border p-5">
-      <SectionHeading eyebrow="Primitive" title={title} className="mb-4" />
+      <SectionHeading eyebrow="基础组件" title={title} className="mb-4" />
       <div className="flex flex-wrap items-start gap-3">{children}</div>
     </section>
   );
@@ -44,9 +44,9 @@ function Gallery() {
 
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader eyebrow="Dev" title="Component gallery" description="Core design-system primitives, in one place." />
+      <PageHeader eyebrow="开发" title="组件展示" description="集中展示设计系统的基础组件。" />
 
-      <Section title="Button variants">
+      <Section title="按钮样式">
         {(["default", "secondary", "outline", "ghost", "destructive", "link"] as const).map((v) => (
           <Button key={v} variant={v}>
             {v}
@@ -54,19 +54,19 @@ function Gallery() {
         ))}
       </Section>
 
-      <Section title="Button sizes">
-        <Button size="sm">sm</Button>
-        <Button size="default">default</Button>
-        <Button size="lg">lg</Button>
-        <IconButton aria-label="Sparkles" size="icon-sm">
+      <Section title="按钮尺寸">
+        <Button size="sm">小号</Button>
+        <Button size="default">默认</Button>
+        <Button size="lg">大号</Button>
+        <IconButton aria-label="闪光" size="icon-sm">
           <Sparkles />
         </IconButton>
-        <IconButton aria-label="Delete" size="icon">
+        <IconButton aria-label="删除" size="icon">
           <Trash2 />
         </IconButton>
       </Section>
 
-      <Section title="Badges">
+      <Section title="徽章">
         {(["default", "secondary", "outline", "destructive"] as const).map((v) => (
           <Badge key={v} variant={v}>
             {v}
@@ -74,63 +74,62 @@ function Gallery() {
         ))}
       </Section>
 
-      <Section title="Alerts">
+      <Section title="提示">
         <div className="w-full space-y-2">
           {(["default", "warning", "destructive", "success"] as const).map((v) => (
             <Alert key={v} variant={v}>
-              <AlertTitle>{v} alert</AlertTitle>
-              <AlertDescription>Something worth the user&apos;s attention.</AlertDescription>
+              <AlertTitle>提示类型：{v}</AlertTitle>
+              <AlertDescription>这里展示一条需要用户注意的提示信息。</AlertDescription>
             </Alert>
           ))}
         </div>
       </Section>
 
-      <Section title="FormField">
+      <Section title="表单字段">
         <div className="w-full max-w-sm space-y-4">
-          <FormField label="Display name" htmlFor="g-name" description="Visible to teammates.">
+          <FormField label="显示名称" htmlFor="g-name" description="团队成员可以看到。">
             <Input id="g-name" placeholder="Ada Lovelace" />
           </FormField>
-          <FormField label="Email" htmlFor="g-email" error="That email is already taken." required>
+          <FormField label="邮箱" htmlFor="g-email" error="该邮箱已被使用。" required>
             <Input id="g-email" type="email" defaultValue="taken@example.com" />
           </FormField>
         </div>
       </Section>
 
-      <Section title="StatCard">
+      <Section title="统计卡片">
         <div className="grid w-full gap-3 sm:grid-cols-3">
-          <StatCard label="Credits" value="1,240" delta={12.5} deltaLabel="vs prior 7d" />
-          <StatCard label="Conversations" value="38" footer="across all chats" />
-          <StatCard label="Knowledge base" value="0" unit="vectors" />
+          <StatCard label="额度" value="1,240" delta={12.5} deltaLabel="较前 7 天" />
+          <StatCard label="对话" value="38" footer="全部聊天" />
+          <StatCard label="知识库" value="0" unit="个向量" />
         </div>
       </Section>
 
-      <Section title="EmptyState">
+      <Section title="空状态">
         <div className="w-full">
           <EmptyState
             icon={Sparkles}
-            title="Nothing here yet"
-            description="Create your first item to get started."
-            cta={{ label: "Create", onClick: () => {} }}
+            title="这里还没有内容"
+            description="创建第一条内容即可开始使用。"
+            cta={{ label: "创建", onClick: () => {} }}
           />
         </div>
       </Section>
 
-      <Section title="ConfirmDialog">
+      <Section title="确认对话框">
         <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-          Delete something…
+          删除内容…
         </Button>
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          title="Delete this resource?"
-          description="This action cannot be undone."
+          title="要删除此资源吗？"
+          description="此操作无法撤销。"
           destructive
-          confirmText="DELETE"
-          confirmLabel="Delete"
+          confirmText="删除"
+          confirmLabel="删除"
           onConfirm={() => setConfirmOpen(false)}
         />
       </Section>
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   ArrowDown,
   ArrowUp,
@@ -44,6 +45,7 @@ function getInitials(nameOrEmail: string): string {
 }
 
 export default function AdminUsersPage() {
+  const isChinese = useLocale() === "zh";
   const { users, total, isLoading, fetchUsers, updateUser, deleteUser, impersonateUser } =
     useAdminUsers();
   const [search, setSearch] = useState("");
@@ -106,8 +108,12 @@ export default function AdminUsersPage() {
       {
         key: "email",
         header: (
-          <SortHeader active={sort.by === "email"} dir={sort.dir} onClick={() => toggleSort("email")}>
-            User
+          <SortHeader
+            active={sort.by === "email"}
+            dir={sort.dir}
+            onClick={() => toggleSort("email")}
+          >
+            {isChinese ? "用户" : "User"}
           </SortHeader>
         ),
         cell: (u) => (
@@ -130,14 +136,16 @@ export default function AdminUsersPage() {
       {
         key: "role",
         hideBelow: "md",
-        header: "Role",
+        header: isChinese ? "角色" : "Role",
         cell: (u) => (
           <div className="flex items-center gap-1.5">
-            <span className="text-sm capitalize">{u.role}</span>
+            <span className="text-sm capitalize">
+              {isChinese ? (u.role === "admin" ? "管理员" : "普通成员") : u.role}
+            </span>
             {u.is_app_admin && (
               <Badge variant="outline" className="gap-0.5 font-normal">
                 <Shield className="h-2.5 w-2.5" />
-                App
+                {isChinese ? "应用" : "App"}
               </Badge>
             )}
           </div>
@@ -146,21 +154,18 @@ export default function AdminUsersPage() {
       {
         key: "is_active",
         hideBelow: "sm",
-        header: "Status",
+        header: isChinese ? "状态" : "Status",
         cell: (u) =>
           u.is_active ? (
             <Badge
               variant="outline"
               className="border-border bg-foreground/5 text-foreground font-normal"
             >
-              Active
+              {isChinese ? "正常" : "Active"}
             </Badge>
           ) : (
-            <Badge
-              variant="outline"
-              className="border-border text-muted-foreground font-normal"
-            >
-              Suspended
+            <Badge variant="outline" className="border-border text-muted-foreground font-normal">
+              {isChinese ? "已停用" : "Suspended"}
             </Badge>
           ),
       },
@@ -173,13 +178,11 @@ export default function AdminUsersPage() {
             dir={sort.dir}
             onClick={() => toggleSort("created_at")}
           >
-            Joined
+            {isChinese ? "加入时间" : "Joined"}
           </SortHeader>
         ),
         cell: (u) => (
-          <span className="text-muted-foreground text-sm">
-            {formatDate(u.created_at)}
-          </span>
+          <span className="text-muted-foreground text-sm">{formatDate(u.created_at)}</span>
         ),
       },
       {
@@ -196,12 +199,12 @@ export default function AdminUsersPage() {
               handleOpenUser(u);
             }}
           >
-            Inspect
+            {isChinese ? "查看详情" : "Inspect"}
           </Button>
         ),
       },
     ],
-    [sort.by, sort.dir, handleOpenUser],
+    [sort.by, sort.dir, handleOpenUser, isChinese],
   );
 
   const start = total === 0 ? 0 : page * pageSize + 1;
@@ -213,7 +216,7 @@ export default function AdminUsersPage() {
         <div className="relative min-w-[240px] flex-1">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
-            placeholder="Search by email or name…"
+            placeholder={isChinese ? "按邮箱或姓名搜索…" : "Search by email or name…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -227,14 +230,14 @@ export default function AdminUsersPage() {
           <SelectContent>
             {PAGE_SIZE_OPTIONS.map((n) => (
               <SelectItem key={n} value={String(n)}>
-                {n} / page
+                {isChinese ? `${n} 条 / 页` : `${n} / page`}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <span className="text-muted-foreground ml-auto text-xs">
-          {total.toLocaleString()} total
+          {isChinese ? `共 ${total.toLocaleString()} 位用户` : `${total.toLocaleString()} total`}
         </span>
       </div>
 
@@ -244,13 +247,23 @@ export default function AdminUsersPage() {
         getRowKey={(u) => u.id}
         loading={isLoading && users.length === 0}
         onRowClick={handleOpenUser}
-        empty={search ? `No users match "${search}".` : "No users yet."}
+        empty={
+          search
+            ? isChinese
+              ? `没有匹配“${search}”的用户。`
+              : `No users match "${search}".`
+            : isChinese
+              ? "暂无用户。"
+              : "No users yet."
+        }
       />
 
       {total > 0 && (
         <div className="border-border bg-card flex items-center justify-between rounded-xl border px-4 py-3">
           <span className="text-muted-foreground text-sm">
-            {start}–{end} of {total.toLocaleString()}
+            {isChinese
+              ? `第 ${start}–${end} 条，共 ${total.toLocaleString()} 条`
+              : `${start}–${end} of ${total.toLocaleString()}`}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -258,7 +271,7 @@ export default function AdminUsersPage() {
               size="sm"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0 || isLoading}
-              aria-label="Previous page"
+              aria-label={isChinese ? "上一页" : "Previous page"}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -270,7 +283,7 @@ export default function AdminUsersPage() {
               size="sm"
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1 || isLoading}
-              aria-label="Next page"
+              aria-label={isChinese ? "下一页" : "Next page"}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

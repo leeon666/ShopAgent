@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   ArrowDown,
@@ -95,7 +95,14 @@ function SortButton({
   );
 }
 
-function DemoToggle({ conv, onToggle }: { conv: Conversation; onToggle: (id: string, isDemo: boolean) => void }) {
+function DemoToggle({
+  conv,
+  onToggle,
+}: {
+  conv: Conversation;
+  onToggle: (id: string, isDemo: boolean) => void;
+}) {
+  const isChinese = useLocale() === "zh";
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
     setBusy(true);
@@ -106,13 +113,25 @@ function DemoToggle({ conv, onToggle }: { conv: Conversation; onToggle: (id: str
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        toast.error(body?.detail ?? `Failed (${res.status})`);
+        toast.error(
+          body?.detail ?? (isChinese ? `操作失败（${res.status}）` : `Failed (${res.status})`),
+        );
         return;
       }
       onToggle(conv.id, next);
-      toast.success(next ? "Added to demos" : "Removed from demos");
+      toast.success(
+        next
+          ? isChinese
+            ? "已加入演示"
+            : "Added to demos"
+          : isChinese
+            ? "已从演示中移除"
+            : "Removed from demos",
+      );
     } catch {
-      toast.error("Network error — could not update demo status");
+      toast.error(
+        isChinese ? "网络错误，无法更新演示状态。" : "Network error — could not update demo status",
+      );
     } finally {
       setBusy(false);
     }
@@ -123,7 +142,15 @@ function DemoToggle({ conv, onToggle }: { conv: Conversation; onToggle: (id: str
         type="button"
         disabled={busy}
         onClick={toggle}
-        title={conv.is_demo ? "Remove from demos" : "Add to demos"}
+        title={
+          conv.is_demo
+            ? isChinese
+              ? "从演示中移除"
+              : "Remove from demos"
+            : isChinese
+              ? "加入演示"
+              : "Add to demos"
+        }
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
           conv.is_demo
@@ -133,13 +160,19 @@ function DemoToggle({ conv, onToggle }: { conv: Conversation; onToggle: (id: str
         )}
       >
         <Play className="h-2.5 w-2.5" />
-        {conv.is_demo ? "In demos" : "Add demo"}
+        {conv.is_demo
+          ? isChinese
+            ? "已在演示中"
+            : "In demos"
+          : isChinese
+            ? "加入演示"
+            : "Add demo"}
       </button>
       {conv.is_demo && (
         <Link
           href={`/demo/${conv.id}`}
           target="_blank"
-          title="Watch demo"
+          title={isChinese ? "查看演示" : "Watch demo"}
           className="text-brand/70 hover:text-brand transition-colors"
         >
           <ExternalLink className="h-3 w-3" />
@@ -151,15 +184,24 @@ function DemoToggle({ conv, onToggle }: { conv: Conversation; onToggle: (id: str
 
 export default function AdminConversationsPage() {
   const t = useTranslations("admin");
-  const { conversations: rawConversations, conversationsTotal, users, isLoading, fetchConversations, fetchUsers } =
-    useAdminConversations();
+  const isChinese = useLocale() === "zh";
+  const {
+    conversations: rawConversations,
+    conversationsTotal,
+    users,
+    isLoading,
+    fetchConversations,
+    fetchUsers,
+  } = useAdminConversations();
   const [localDemoState, setLocalDemoState] = useState<Record<string, boolean>>({});
   const conversations = useMemo(
-    () => rawConversations.map((c) => ({ ...c, is_demo: localDemoState[c.id] ?? c.is_demo ?? false })),
+    () =>
+      rawConversations.map((c) => ({ ...c, is_demo: localDemoState[c.id] ?? c.is_demo ?? false })),
     [rawConversations, localDemoState],
   );
-  const handleDemoToggle = (id: string, isDemo: boolean) =>
+  const handleDemoToggle = useCallback((id: string, isDemo: boolean) => {
     setLocalDemoState((prev) => ({ ...prev, [id]: isDemo }));
+  }, []);
 
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -212,7 +254,11 @@ export default function AdminConversationsPage() {
       {
         key: "title",
         header: (
-          <SortButton active={sort.by === "title"} dir={sort.dir} onClick={() => toggleSort("title")}>
+          <SortButton
+            active={sort.by === "title"}
+            dir={sort.dir}
+            onClick={() => toggleSort("title")}
+          >
             {t("title")}
           </SortButton>
         ),
@@ -224,7 +270,11 @@ export default function AdminConversationsPage() {
         key: "owner",
         hideBelow: "md",
         header: (
-          <SortButton active={sort.by === "owner"} dir={sort.dir} onClick={() => toggleSort("owner")}>
+          <SortButton
+            active={sort.by === "owner"}
+            dir={sort.dir}
+            onClick={() => toggleSort("owner")}
+          >
             {t("owner")}
           </SortButton>
         ),
@@ -266,9 +316,7 @@ export default function AdminConversationsPage() {
           </SortButton>
         ),
         cell: (conv) => (
-          <span className="text-muted-foreground">
-            {formatDate(conv.created_at)}
-          </span>
+          <span className="text-muted-foreground">{formatDate(conv.created_at)}</span>
         ),
       },
       {
@@ -276,16 +324,16 @@ export default function AdminConversationsPage() {
         header: t("status"),
         cell: (conv) =>
           conv.is_archived ? (
-            <Badge variant="secondary">Archived</Badge>
+            <Badge variant="secondary">{isChinese ? "已归档" : "Archived"}</Badge>
           ) : (
-            <Badge variant="default">Active</Badge>
+            <Badge variant="default">{isChinese ? "活跃" : "Active"}</Badge>
           ),
       },
       {
         key: "demo",
         align: "right",
         hideBelow: "sm",
-        header: "Demo",
+        header: isChinese ? "演示" : "Demo",
         cell: (conv) => <DemoToggle conv={conv} onToggle={handleDemoToggle} />,
       },
       {
@@ -303,7 +351,7 @@ export default function AdminConversationsPage() {
         ),
       },
     ],
-    [sort.by, sort.dir, t, handleDemoToggle],
+    [sort.by, sort.dir, t, handleDemoToggle, isChinese],
   );
 
   return (
@@ -324,9 +372,9 @@ export default function AdminConversationsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="active">{isChinese ? "活跃" : "Active"}</SelectItem>
+            <SelectItem value="archived">{isChinese ? "已归档" : "Archived"}</SelectItem>
+            <SelectItem value="all">{isChinese ? "全部" : "All"}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -335,10 +383,10 @@ export default function AdminConversationsPage() {
           onValueChange={(v) => setSelectedUserId(v === "all" ? null : v)}
         >
           <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="All owners" />
+            <SelectValue placeholder={isChinese ? "全部所有者" : "All owners"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All owners</SelectItem>
+            <SelectItem value="all">{isChinese ? "全部所有者" : "All owners"}</SelectItem>
             {userOptions.map((u) => (
               <SelectItem key={u.id} value={u.id}>
                 <span className="flex items-center gap-2">
@@ -357,14 +405,16 @@ export default function AdminConversationsPage() {
           <SelectContent>
             {PAGE_SIZE_OPTIONS.map((n) => (
               <SelectItem key={n} value={String(n)}>
-                {n} / page
+                {isChinese ? `${n} 条 / 页` : `${n} / page`}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="text-muted-foreground text-xs">{conversationsTotal} total</div>
+      <div className="text-muted-foreground text-xs">
+        {isChinese ? `共 ${conversationsTotal} 个对话` : `${conversationsTotal} total`}
+      </div>
 
       <DataTable<Conversation>
         columns={columns}
@@ -405,13 +455,14 @@ function PaginationBar({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const isChinese = useLocale() === "zh";
   if (total === 0) return null;
   const start = page * pageSize + 1;
   const end = Math.min(total, (page + 1) * pageSize);
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground text-sm">
-        {start}–{end} of {total}
+        {isChinese ? `第 ${start}–${end} 条，共 ${total} 条` : `${start}–${end} of ${total}`}
       </span>
       <div className="flex items-center gap-1">
         <Button
@@ -419,7 +470,7 @@ function PaginationBar({
           size="sm"
           onClick={onPrev}
           disabled={page === 0 || isLoading}
-          aria-label="Previous page"
+          aria-label={isChinese ? "上一页" : "Previous page"}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -431,7 +482,7 @@ function PaginationBar({
           size="sm"
           onClick={onNext}
           disabled={page >= totalPages - 1 || isLoading}
-          aria-label="Next page"
+          aria-label={isChinese ? "下一页" : "Next page"}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

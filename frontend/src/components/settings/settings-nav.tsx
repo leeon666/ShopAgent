@@ -2,13 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  Palette,
-  Shield,
-  Slash,
-  UserCircle,
-} from "lucide-react";
+import { useLocale } from "next-intl";
+import { Bell, Palette, Shield, Slash, UserCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,48 +16,48 @@ interface NavItem {
   description: string;
 }
 
-const ITEMS: NavItem[] = [
-  {
-    label: "Profile",
-    href: ROUTES.SETTINGS_PROFILE,
-    icon: UserCircle,
-    description: "Avatar, name, email, sessions",
-  },
-  {
-    label: "Account",
-    href: ROUTES.SETTINGS_ACCOUNT,
-    icon: Shield,
-    description: "Password, two-factor, danger zone",
-  },
-  {
-    label: "Slash commands",
-    href: ROUTES.SETTINGS_SLASH_COMMANDS,
-    icon: Slash,
-    description: "Custom shortcuts + built-in toggles",
-  },
-  {
-    label: "Notifications",
-    href: ROUTES.SETTINGS_NOTIFICATIONS,
-    icon: Bell,
-    description: "What we email you about",
-  },
-  {
-    label: "Appearance",
-    href: ROUTES.SETTINGS_APPEARANCE,
-    icon: Palette,
-    description: "Theme, density, brand color",
-  },
-];
-
 export function SettingsNav() {
   const pathname = usePathname();
+  const isChinese = useLocale() === "zh";
   const stripped = pathname.replace(/^\/[a-z]{2}/, "");
+  const items: NavItem[] = [
+    {
+      label: isChinese ? "个人资料" : "Profile",
+      href: ROUTES.SETTINGS_PROFILE,
+      icon: UserCircle,
+      description: isChinese ? "头像、姓名、邮箱与登录会话" : "Avatar, name, email, sessions",
+    },
+    {
+      label: isChinese ? "账户安全" : "Account",
+      href: ROUTES.SETTINGS_ACCOUNT,
+      icon: Shield,
+      description: isChinese ? "密码、双重验证与危险操作" : "Password, two-factor, danger zone",
+    },
+    {
+      label: isChinese ? "快捷命令" : "Slash commands",
+      href: ROUTES.SETTINGS_SLASH_COMMANDS,
+      icon: Slash,
+      description: isChinese ? "自定义快捷命令与内置开关" : "Custom shortcuts + built-in toggles",
+    },
+    {
+      label: isChinese ? "通知设置" : "Notifications",
+      href: ROUTES.SETTINGS_NOTIFICATIONS,
+      icon: Bell,
+      description: isChinese ? "选择需要通过邮件通知的事件" : "What we email you about",
+    },
+    {
+      label: isChinese ? "外观设置" : "Appearance",
+      href: ROUTES.SETTINGS_APPEARANCE,
+      icon: Palette,
+      description: isChinese ? "主题、密度与品牌颜色" : "Theme, density, brand color",
+    },
+  ];
 
   return (
     <>
       <nav className="hidden lg:block">
         <ul className="space-y-1">
-          {ITEMS.map((item) => {
+          {items.map((item) => {
             const active = stripped === item.href || stripped.startsWith(item.href + "/");
             return (
               <li key={item.href}>
@@ -100,7 +95,7 @@ export function SettingsNav() {
       </nav>
 
       <nav className="-mx-3 flex scrollbar-thin gap-1.5 overflow-x-auto px-3 pb-2 lg:hidden">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = stripped === item.href || stripped.startsWith(item.href + "/");
           return (
             <Link

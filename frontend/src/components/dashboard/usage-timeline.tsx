@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Activity } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { SegmentedControl } from "@/components/dashboard/segmented-control";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -40,13 +41,13 @@ const RANGES = [
 
 type Metric = "credits" | "calls" | "tokens";
 
-const METRIC_LABELS: Record<Metric, string> = {
-  credits: "Credits",
-  calls: "Calls",
-  tokens: "Tokens",
-};
-
 export function UsageTimeline() {
+  const isChinese = useLocale() === "zh";
+  const metricLabels: Record<Metric, string> = {
+    credits: isChinese ? "额度" : "Credits",
+    calls: isChinese ? "调用次数" : "Calls",
+    tokens: isChinese ? "Token" : "Tokens",
+  };
   const [days, setDays] = useState<number>(30);
   const [metric, setMetric] = useState<Metric>("credits");
   const [data, setData] = useState<UsageBucket[] | null>(null);
@@ -66,13 +67,15 @@ export function UsageTimeline() {
         if (err instanceof ApiError && err.status === 404) {
           setData([]);
         } else {
-          setError(getErrorMessage(err, "Failed to load usage timeline"));
+          setError(
+            getErrorMessage(err, isChinese ? "加载使用趋势失败" : "Failed to load usage timeline"),
+          );
         }
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [isChinese],
   );
 
   useEffect(() => {
@@ -97,15 +100,13 @@ export function UsageTimeline() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-foreground/55 font-mono text-[11px] tracking-wider uppercase">
-            Usage over time
+            {isChinese ? "使用趋势" : "Usage over time"}
           </p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="font-display text-foreground text-2xl font-bold">
               {totalForMetric.toLocaleString()}
             </span>
-            <span className="text-foreground/55 text-sm">
-              {METRIC_LABELS[metric].toLowerCase()}
-            </span>
+            <span className="text-foreground/55 text-sm">{metricLabels[metric]}</span>
           </div>
         </div>
 
@@ -114,9 +115,9 @@ export function UsageTimeline() {
             value={metric}
             onChange={(v) => setMetric(v as Metric)}
             options={[
-              { label: "Credits", value: "credits" },
-              { label: "Calls", value: "calls" },
-              { label: "Tokens", value: "tokens" },
+              { label: metricLabels.credits, value: "credits" },
+              { label: metricLabels.calls, value: "calls" },
+              { label: metricLabels.tokens, value: "tokens" },
             ]}
           />
           <SegmentedControl
@@ -129,19 +130,26 @@ export function UsageTimeline() {
 
       <div className="mt-5 h-56 w-full">
         {loading ? (
-          <LoadingState variant="dot-pulse" label="Loading usage…" />
+          <LoadingState
+            variant="dot-pulse"
+            label={isChinese ? "正在加载使用数据…" : "Loading usage…"}
+          />
         ) : error ? (
           <ErrorState
-            title="Couldn't load usage"
+            title={isChinese ? "无法加载使用数据" : "Couldn't load usage"}
             description={error}
-            cta={{ label: "Retry", onClick: () => fetchTimeline(days) }}
+            cta={{ label: isChinese ? "重试" : "Retry", onClick: () => fetchTimeline(days) }}
             className="h-full"
           />
         ) : !chartData || chartData.length === 0 ? (
           <EmptyState
             icon={Activity}
-            title="No usage yet"
-            description="Once you start sending messages, usage will appear here."
+            title={isChinese ? "暂无使用数据" : "No usage yet"}
+            description={
+              isChinese
+                ? "开始发送消息后，使用情况会显示在这里。"
+                : "Once you start sending messages, usage will appear here."
+            }
             fill
           />
         ) : (
@@ -155,6 +163,10 @@ export function UsageTimeline() {
 function formatDayLabel(day: string, _range: number): string {
   const d = new Date(day);
   if (Number.isNaN(d.getTime())) return day;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(
+    typeof document !== "undefined" && document.documentElement.lang.startsWith("en")
+      ? "en-US"
+      : "zh-CN",
+    { month: "short", day: "numeric" },
+  );
 }
-

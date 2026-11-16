@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ArrowRight, Check, X } from "lucide-react";
 
@@ -16,6 +16,7 @@ import { EMAIL_RE, getPasswordStrength } from "@/lib/utils";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
+  const isChinese = useLocale() === "zh";
   const router = useRouter();
   const { register } = useAuth();
   const [email, setEmail] = useState("");
@@ -36,16 +37,16 @@ export function RegisterForm() {
     setError("");
 
     if (!EMAIL_RE.test(email)) {
-      setError("Please enter a valid email address");
+      setError(isChinese ? "请输入有效的邮箱地址" : "Please enter a valid email address");
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(isChinese ? "密码至少需要 8 个字符" : "Password must be at least 8 characters");
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      toast.error("Passwords do not match");
+      setError(isChinese ? "两次输入的密码不一致" : "Passwords do not match");
+      toast.error(isChinese ? "两次输入的密码不一致" : "Passwords do not match");
       return;
     }
 
@@ -56,7 +57,11 @@ export function RegisterForm() {
       router.push(ROUTES.LOGIN + "?registered=true");
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : "Registration failed. Please try again.";
+        err instanceof ApiError
+          ? err.message
+          : isChinese
+            ? "注册失败，请稍后重试。"
+            : "Registration failed. Please try again.";
       setError(message);
       toast.error(message);
     } finally {
@@ -69,7 +74,15 @@ export function RegisterForm() {
       <div className="space-y-2">
         <span className="eyebrow text-foreground/55">{t("getStarted")}</span>
         <h1 className="text-display-md text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          Create your <em>workspace.</em>
+          {isChinese ? (
+            <>
+              创建你的<em>工作区。</em>
+            </>
+          ) : (
+            <>
+              Create your <em>workspace.</em>
+            </>
+          )}
         </h1>
         <p className="text-foreground/65 text-sm">
           {t("hasAccount")}{" "}
@@ -136,7 +149,7 @@ export function RegisterForm() {
           <Input
             id="password"
             type="password"
-            placeholder="At least 8 characters"
+            placeholder={isChinese ? "至少 8 个字符" : "At least 8 characters"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -164,12 +177,12 @@ export function RegisterForm() {
                   {password.length >= 8 ? (
                     <span className="text-brand inline-flex items-center gap-1">
                       <Check className="h-3 w-3" />
-                      8+ chars
+                      {isChinese ? "至少 8 位" : "8+ chars"}
                     </span>
                   ) : (
                     <span className="text-foreground/55 inline-flex items-center gap-1">
                       <X className="h-3 w-3" />
-                      8+ chars
+                      {isChinese ? "至少 8 位" : "8+ chars"}
                     </span>
                   )}
                 </div>
@@ -188,7 +201,7 @@ export function RegisterForm() {
           <Input
             id="confirmPassword"
             type="password"
-            placeholder="Repeat the password"
+            placeholder={isChinese ? "再次输入密码" : "Repeat the password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -226,21 +239,21 @@ export function RegisterForm() {
         </Button>
 
         <p className="text-foreground/50 text-center text-xs">
-          By creating an account, you agree to our{" "}
+          {isChinese ? "创建账户即表示你同意我们的" : "By creating an account, you agree to our"}{" "}
           <Link
             href={ROUTES.LEGAL_TERMS}
             className="text-foreground/70 hover:text-foreground underline-offset-4 hover:underline"
           >
-            Terms
+            {isChinese ? "服务条款" : "Terms"}
           </Link>{" "}
-          and{" "}
+          {isChinese ? "和" : "and"}{" "}
           <Link
             href={ROUTES.LEGAL_PRIVACY}
             className="text-foreground/70 hover:text-foreground underline-offset-4 hover:underline"
           >
-            Privacy Policy
+            {isChinese ? "隐私政策" : "Privacy Policy"}
           </Link>
-          .
+          {isChinese ? "。" : "."}
         </p>
       </form>
 
@@ -248,4 +261,3 @@ export function RegisterForm() {
     </div>
   );
 }
-

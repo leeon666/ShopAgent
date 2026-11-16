@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  Check,
-  ChevronDown,
-  Cpu,
-  Settings2,
-  Sliders,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, ChevronDown, Cpu, Settings2, Sliders } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
 import { useConversationStore } from "@/stores";
@@ -27,11 +18,29 @@ interface ChatControlsProps {
   onThinkingEffortChange?: (value: "low" | "medium" | "high" | null) => void;
 }
 
-const EFFORT_OPTIONS: { label: string; value: ThinkingEffort; hint: string }[] = [
-  { label: "Off", value: "off", hint: "Direct answer, no reasoning" },
-  { label: "Low", value: "low", hint: "Quick reasoning" },
-  { label: "Medium", value: "medium", hint: "Balanced" },
-  { label: "High", value: "high", hint: "Deep, slower" },
+const EFFORT_OPTIONS: {
+  label: string;
+  labelZh: string;
+  value: ThinkingEffort;
+  hint: string;
+  hintZh: string;
+}[] = [
+  {
+    label: "Off",
+    labelZh: "关闭",
+    value: "off",
+    hint: "Direct answer, no reasoning",
+    hintZh: "直接回答，不进行推理",
+  },
+  { label: "Low", labelZh: "低", value: "low", hint: "Quick reasoning", hintZh: "快速推理" },
+  { label: "Medium", labelZh: "中", value: "medium", hint: "Balanced", hintZh: "速度与深度平衡" },
+  {
+    label: "High",
+    labelZh: "高",
+    value: "high",
+    hint: "Deep, slower",
+    hintZh: "推理更深入，速度更慢",
+  },
 ];
 
 /**
@@ -44,15 +53,16 @@ export function ChatControls({
   onTemperatureChange,
   onThinkingEffortChange,
 }: ChatControlsProps) {
+  const isChinese = useLocale() === "zh";
   const [tab, setTab] = useState<Tab>("model");
   const { currentConversationId } = useConversationStore();
 
   const [availableModels, setAvailableModels] = useState<{ value: string; label: string }[]>([
-    { value: "", label: "Default" },
+    { value: "", label: isChinese ? "默认" : "Default" },
   ]);
   const [selectedModel, setSelectedModel] = useState<{ value: string; label: string }>({
     value: "",
-    label: "Default",
+    label: isChinese ? "默认" : "Default",
   });
 
   useEffect(() => {
@@ -64,7 +74,7 @@ export function ChatControls({
       .then((data) => {
         if (data?.models) {
           const models = [
-            { value: "", label: `Default (${data.default})` },
+            { value: "", label: `${isChinese ? "默认" : "Default"} (${data.default})` },
             ...data.models.map((m: string) => ({ value: m, label: m })),
           ];
           setAvailableModels(models);
@@ -72,7 +82,7 @@ export function ChatControls({
         }
       })
       .catch(() => {});
-  }, []);
+  }, [isChinese]);
 
   const [temperature, setTemperature] = useState<number | null>(null);
   const [effort, setEffort] = useState<ThinkingEffort>("off");
@@ -81,19 +91,18 @@ export function ChatControls({
   const triggerSummary = useMemo(() => {
     const parts: string[] = [];
     if (selectedModel.value) parts.push(selectedModel.value);
-    if (settingsOverridden) parts.push("Custom");
-    return parts.length ? parts.join(" · ") : "Controls";
-  }, [selectedModel, settingsOverridden]);
+    if (settingsOverridden) parts.push(isChinese ? "自定义" : "Custom");
+    return parts.length ? parts.join(" · ") : isChinese ? "控制项" : "Controls";
+  }, [selectedModel, settingsOverridden, isChinese]);
 
-  const hasOverrides =
-    selectedModel.value !== "" || settingsOverridden;
+  const hasOverrides = selectedModel.value !== "" || settingsOverridden;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Chat controls"
+          aria-label={isChinese ? "聊天控制项" : "Chat controls"}
           className={cn(
             "border-foreground/10 bg-card hover:border-foreground/25 hover:bg-foreground/[0.04] inline-flex items-center gap-1.5 rounded-full border py-1 pr-2 pl-2.5 font-mono text-[11px] tracking-wider uppercase transition-colors",
             hasOverrides ? "text-foreground" : "text-foreground/65",
@@ -117,7 +126,7 @@ export function ChatControls({
           {onModelChange && (
             <TabButton
               icon={Cpu}
-              label="Model"
+              label={isChinese ? "模型" : "Model"}
               active={tab === "model"}
               onClick={() => setTab("model")}
             />
@@ -125,7 +134,7 @@ export function ChatControls({
           {onTemperatureChange && onThinkingEffortChange && (
             <TabButton
               icon={Settings2}
-              label="Settings"
+              label={isChinese ? "设置" : "Settings"}
               active={tab === "settings"}
               onClick={() => setTab("settings")}
             />
@@ -165,9 +174,15 @@ export function ChatControls({
               aria-hidden
               className="bg-foreground inline-block h-1 w-1 animate-pulse rounded-full"
             />
-            {currentConversationId ? "Saved for this chat" : "Saves on send"}
+            {currentConversationId
+              ? isChinese
+                ? "已保存到此对话"
+                : "Saved for this chat"
+              : isChinese
+                ? "发送后保存"
+                : "Saves on send"}
           </span>
-          <span>esc to close</span>
+          <span>{isChinese ? "按 Esc 关闭" : "esc to close"}</span>
         </div>
       </PopoverContent>
     </Popover>
@@ -212,11 +227,12 @@ function ModelPanel({
   selected: { value: string; label: string };
   onPick: (m: { value: string; label: string }) => void;
 }) {
+  const isChinese = useLocale() === "zh";
   return (
     <div>
-      <p className="text-foreground mb-1 text-sm font-semibold">Model</p>
+      <p className="text-foreground mb-1 text-sm font-semibold">{isChinese ? "模型" : "Model"}</p>
       <p className="text-foreground/55 mb-4 text-xs leading-relaxed">
-        Pick the model that handles this conversation.
+        {isChinese ? "选择处理当前对话的模型。" : "Pick the model that handles this conversation."}
       </p>
       <ul className="space-y-1">
         {models.map((m) => {
@@ -256,16 +272,17 @@ function SettingsPanel({
   onTemperatureChange: (v: number | null) => void;
   onEffortChange: (v: ThinkingEffort) => void;
 }) {
+  const isChinese = useLocale() === "zh";
   return (
     <div className="space-y-6">
       <div className="space-y-2.5">
         <div className="flex items-baseline justify-between">
           <label htmlFor="chat-temp" className="text-foreground text-sm font-semibold">
-            Temperature
+            {isChinese ? "温度" : "Temperature"}
           </label>
           <span className="text-foreground font-mono text-xs tabular-nums">
             {temperature === null ? (
-              <span className="text-foreground/55">default</span>
+              <span className="text-foreground/55">{isChinese ? "默认" : "default"}</span>
             ) : (
               temperature.toFixed(2)
             )}
@@ -282,8 +299,8 @@ function SettingsPanel({
           className="bg-foreground/15 h-1.5 w-full cursor-pointer appearance-none rounded-full accent-[var(--color-brand)]"
         />
         <div className="text-foreground/45 flex justify-between font-mono text-[10px] tracking-wider uppercase">
-          <span>focused</span>
-          <span>creative</span>
+          <span>{isChinese ? "更聚焦" : "focused"}</span>
+          <span>{isChinese ? "更发散" : "creative"}</span>
         </div>
         {temperature !== null && (
           <button
@@ -291,15 +308,19 @@ function SettingsPanel({
             onClick={() => onTemperatureChange(null)}
             className="text-foreground/55 hover:text-foreground text-[11px] underline-offset-2 hover:underline"
           >
-            Reset to server default
+            {isChinese ? "恢复服务端默认值" : "Reset to server default"}
           </button>
         )}
       </div>
 
       <div className="space-y-2.5">
         <div className="flex items-baseline justify-between">
-          <span className="text-foreground text-sm font-semibold">Thinking effort</span>
-          <span className="text-foreground/45 text-[10px]">model-dependent</span>
+          <span className="text-foreground text-sm font-semibold">
+            {isChinese ? "思考强度" : "Thinking effort"}
+          </span>
+          <span className="text-foreground/45 text-[10px]">
+            {isChinese ? "取决于模型" : "model-dependent"}
+          </span>
         </div>
         <div className="grid grid-cols-4 gap-1">
           {EFFORT_OPTIONS.map((opt) => (
@@ -314,18 +335,21 @@ function SettingsPanel({
                   : "border-foreground/15 text-foreground/55 hover:text-foreground border",
               )}
             >
-              {opt.label}
+              {isChinese ? opt.labelZh : opt.label}
             </button>
           ))}
         </div>
         <p className="text-foreground/55 text-[11px]">
-          {EFFORT_OPTIONS.find((o) => o.value === effort)?.hint}
+          {isChinese
+            ? EFFORT_OPTIONS.find((o) => o.value === effort)?.hintZh
+            : EFFORT_OPTIONS.find((o) => o.value === effort)?.hint}
         </p>
       </div>
 
       <p className="text-foreground/45 text-[10px] leading-relaxed">
-        Settings persist for the current chat session. Some controls are no-ops on models that
-        don&apos;t support them.
+        {isChinese
+          ? "这些设置仅对当前聊天会话生效。部分模型不支持某些控制项，调整后可能没有变化。"
+          : "Settings persist for the current chat session. Some controls are no-ops on models that don't support them."}
       </p>
     </div>
   );

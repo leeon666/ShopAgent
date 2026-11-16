@@ -34,14 +34,13 @@ import { MessageItem } from "@/components/chat/message-item";
 
 import { ToolCallCard } from "@/components/chat/tool-call-card";
 
-
 import { RawToolView } from "@/components/chat/tool-results/generic";
 import { WebSearchResults, parseWebSearch } from "@/components/chat/tool-results/web-search";
 import { useConversationReplay } from "@/hooks/use-conversation-replay";
 import { conversationMessagesToChatMessages, type RawMessage } from "@/lib/conversation-to-chat";
 import { formatSql } from "@/lib/sql-format";
 import { LOAD_SKILL_TOOL, loadedSkillSummary } from "@/lib/skill-result";
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 import type { ChatMessage, ResearchReplay, ToolCall } from "@/types";
 
 interface DemoReplayProps {
@@ -80,20 +79,26 @@ const scrollbarStyle: React.CSSProperties = {
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 const TOOL_LABELS: Record<string, string> = {
-  load_capability: "Loading skill",
-  run_python: "Running Python",
-  create_chart: "Creating a chart",
-  create_chart_tool: "Creating a chart",
-  map_tool: "Building a map",
-  create_map: "Building a map",
-  create_map_tool: "Building a map",
-  web_search_tool: "Searching the web",
-  search_web: "Searching the web",
-  search_knowledge_base: "Searching the knowledge base",
-  search_documents: "Searching documents",
-  fetch_url: "Opening a page",
-  ask_user: "Asking a question",
-  ask_user_tool: "Asking a question",
+  load_capability: "加载技能",
+  run_python: "运行 Python",
+  create_chart: "生成图表",
+  create_chart_tool: "生成图表",
+  map_tool: "生成地图",
+  create_map: "生成地图",
+  create_map_tool: "生成地图",
+  web_search_tool: "搜索网页",
+  search_web: "搜索网页",
+  search_knowledge_base: "检索知识库",
+  search_documents: "检索文档",
+  fetch_url: "打开网页",
+  ask_user: "向用户追问",
+  ask_user_tool: "向用户追问",
+  get_order: "查询订单",
+  get_logistics: "查询物流",
+  get_after_sales_ticket: "查询售后单",
+  check_refund_eligibility: "校验退款资格",
+  search_after_sales_policy: "检索售后政策",
+  create_refund_proposal: "创建退款提案",
 };
 
 const humanizeTool = (name: string) =>
@@ -101,7 +106,7 @@ const humanizeTool = (name: string) =>
     .replace(/_/g, " ")
     .replace(/\btool\b/gi, "")
     .trim()
-    .replace(/^\w/, (c) => c.toUpperCase()) || "Working";
+    .replace(/^\w/, (c) => c.toUpperCase()) || "处理中";
 
 const frameIconFor = (frame?: { kind: StepKind; tool?: ToolCall } | null) => {
   if (!frame) return Monitor;
@@ -129,15 +134,35 @@ function turnSteps(message: ChatMessage): TurnStep[] {
     for (const p of message.parts) {
       if (p.type === "tool" && p.toolCall) out.push(toolStep(p.toolCall));
       else if (p.type === "text")
-        out.push({ label: "Writing the response", kind: "text", content: p.content ?? message.content ?? "" });
-      else if (p.type === "thinking") out.push({ label: "Thinking", kind: "thinking", content: p.content ?? "" });
-      else if (p.type === "research") out.push({ label: "Researching", kind: "research", research: p.research });
+        out.push({
+          label: uiText("撰写回复", "Writing the response"),
+          kind: "text",
+          content: p.content ?? message.content ?? "",
+        });
+      else if (p.type === "thinking")
+        out.push({
+          label: uiText("思考中", "Thinking"),
+          kind: "thinking",
+          content: p.content ?? "",
+        });
+      else if (p.type === "research")
+        out.push({
+          label: uiText("研究中", "Researching"),
+          kind: "research",
+          research: p.research,
+        });
     }
     return out;
   }
-  if (message.thinking) out.push({ label: "Thinking", kind: "thinking", content: message.thinking });
+  if (message.thinking)
+    out.push({ label: uiText("思考中", "Thinking"), kind: "thinking", content: message.thinking });
   for (const tc of message.toolCalls ?? []) out.push(toolStep(tc));
-  if (message.content) out.push({ label: "Writing the response", kind: "text", content: message.content });
+  if (message.content)
+    out.push({
+      label: uiText("撰写回复", "Writing the response"),
+      kind: "text",
+      content: message.content,
+    });
   return out;
 }
 
@@ -228,20 +253,30 @@ function StepItem({
 }
 
 /** Small clickable "window" tile that opens the Agent's computer panel. */
-function ToolThumb({ frame, onClick, live }: { frame: Frame | null; onClick: () => void; live: boolean }) {
+function ToolThumb({
+  frame,
+  onClick,
+  live,
+}: {
+  frame: Frame | null;
+  onClick: () => void;
+  live: boolean;
+}) {
   const Icon = frameIconFor(frame);
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Open agent's computer"
-      title="Open agent's computer"
+      aria-label={uiText("打开 Agent 工作过程", "Open agent's computer")}
+      title={uiText("打开 Agent 工作过程", "Open agent's computer")}
       className="group border-border/70 bg-muted/50 hover:border-brand/60 relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border shadow-sm transition-colors"
     >
       <span className="bg-foreground/15 absolute top-1.5 left-1.5 h-1 w-1 rounded-full" />
       <span className="bg-foreground/10 absolute top-1.5 left-3 h-1 w-1 rounded-full" />
       <Icon className="text-foreground/55 group-hover:text-brand mt-1 h-4 w-4 transition-colors" />
-      {live && <span className="bg-brand absolute top-1 right-1 h-1.5 w-1.5 animate-pulse rounded-full" />}
+      {live && (
+        <span className="bg-brand absolute top-1 right-1 h-1.5 w-1.5 animate-pulse rounded-full" />
+      )}
     </button>
   );
 }
@@ -286,8 +321,10 @@ function RawIO({ tool, resultText }: { tool: ToolCall; resultText: string }) {
         className="text-foreground/55 hover:text-foreground/85 flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-colors"
       >
         <Code2 className="h-3.5 w-3.5 shrink-0" />
-        <span className="flex-1">Raw input / output</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")} />
+        <span className="flex-1">{uiText("原始输入 / 输出", "Raw input / output")}</span>
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")}
+        />
       </button>
       {open && (
         <div className="border-border/50 border-t px-3 py-2.5">
@@ -304,9 +341,9 @@ function FrameContent({ frame }: { frame: Frame }) {
   if (frame.kind === "thinking") return <ThinkingView content={frame.content ?? ""} />;
   if (frame.kind === "text") return <ResponseView content={frame.content ?? ""} />;
 
-
   const tool = frame.tool;
-  if (!tool) return <div className="text-foreground/50 p-3 text-sm">Working…</div>;
+  if (!tool)
+    return <div className="text-foreground/50 p-3 text-sm">{uiText("处理中…", "Working…")}</div>;
   // `tool.result == null` must yield "" — stringifying it would give the literal
   // two-char string `""`, which is truthy and renders as a bogus content box.
   const resultText =
@@ -348,8 +385,10 @@ function graphSubLabel(frame: Frame): string | null {
     }
   }
   if (t.name.startsWith("create_chart") && typeof a.title === "string") return a.title;
-  if ((t.name === "web_search_tool" || t.name === "search_web") && typeof a.query === "string") return a.query;
-  if ((t.name === "ask_user" || t.name === "ask_user_tool") && typeof a.question === "string") return a.question;
+  if ((t.name === "web_search_tool" || t.name === "search_web") && typeof a.query === "string")
+    return a.query;
+  if ((t.name === "ask_user" || t.name === "ask_user_tool") && typeof a.question === "string")
+    return a.question;
   return null;
 }
 
@@ -405,7 +444,12 @@ function sqlFromToolCall(
   let sql = typeof args.sql === "string" ? args.sql : null;
   let rows: number | null = null;
   try {
-    const parsed = JSON.parse(result) as { sql?: unknown; query?: unknown; rows?: unknown; products?: unknown };
+    const parsed = JSON.parse(result) as {
+      sql?: unknown;
+      query?: unknown;
+      rows?: unknown;
+      products?: unknown;
+    };
     if (!sql && typeof parsed.sql === "string") sql = parsed.sql;
     if (!sql && typeof parsed.query === "string") sql = parsed.query;
     if (Array.isArray(parsed.rows)) rows = parsed.rows.length;
@@ -417,42 +461,54 @@ function sqlFromToolCall(
 }
 
 function graphNodePreview(frame: Frame): NodePreview {
-  if (frame.kind === "thinking") return { tag: "Reasoning", body: clipText(frame.content ?? "") };
-  if (frame.kind === "text") return { tag: "Response", body: clipText(frame.content ?? "") };
+  if (frame.kind === "thinking")
+    return { tag: uiText("推理", "Reasoning"), body: clipText(frame.content ?? "") };
+  if (frame.kind === "text")
+    return { tag: uiText("回复", "Response"), body: clipText(frame.content ?? "") };
   if (frame.kind === "research") {
     const steps = frame.research?.todos.length ?? 0;
-    return { tag: "Deep research", meta: steps ? `${steps} steps` : null };
+    return {
+      tag: uiText("深度研究", "Deep research"),
+      meta: steps ? uiText(`${steps} 个步骤`, `${steps} steps`) : null,
+    };
   }
 
   const t = frame.tool;
-  if (!t) return { tag: "Tool" };
+  if (!t) return { tag: uiText("工具", "Tool") };
   const a = (t.args ?? {}) as Record<string, unknown>;
   const result =
     t.result == null ? "" : typeof t.result === "string" ? t.result : JSON.stringify(t.result);
 
   if (t.name === "run_python") {
     const code = typeof a.code === "string" ? a.code : "";
-    return code ? { tag: "Python", body: clipCode(code), code: true } : { tag: "Python", body: clipText(result) };
+    return code
+      ? { tag: "Python", body: clipCode(code), code: true }
+      : { tag: "Python", body: clipText(result) };
   }
   if (t.name.startsWith("create_chart")) {
     const type = typeof a.chart_type === "string" ? a.chart_type : "chart";
-    return { tag: "Chart", meta: type };
+    return { tag: uiText("图表", "Chart"), meta: type };
   }
   if (t.name === LOAD_SKILL_TOOL) {
-    return { tag: "Skill", body: clipText(loadedSkillSummary(result) || result, 150) };
+    return {
+      tag: uiText("技能", "Skill"),
+      body: clipText(loadedSkillSummary(result) || result, 150),
+    };
   }
   if (t.name === "web_search_tool" || t.name === "search_web") {
     const parsed = parseWebSearch(result);
     const titles = parsed?.results.map((r) => r.title).join(" · ") ?? "";
     return {
-      tag: "Web search",
-      meta: parsed?.results.length ? `${parsed.results.length} results` : null,
+      tag: uiText("网页搜索", "Web search"),
+      meta: parsed?.results.length
+        ? uiText(`${parsed.results.length} 条结果`, `${parsed.results.length} results`)
+        : null,
       body: clipText(titles || result, 160),
     };
   }
   if (t.name === "fetch_url" || t.name === "fetch") {
     return {
-      tag: "Fetch",
+      tag: uiText("网页读取", "Fetch"),
       meta: result ? `${result.length.toLocaleString()} chars` : null,
       body: clipText(result, 160),
     };
@@ -464,28 +520,49 @@ function graphNodePreview(frame: Frame): NodePreview {
   if (sqlResult) {
     return {
       tag: "SQL",
-      meta: sqlResult.rows != null ? `${sqlResult.rows} rows` : null,
+      meta:
+        sqlResult.rows != null ? uiText(`${sqlResult.rows} 行`, `${sqlResult.rows} rows`) : null,
       body: clipCode(formatSql(sqlResult.sql)),
       code: true,
     };
   }
-  return { tag: "Tool", body: clipText(result, 160) };
+  return { tag: uiText("工具", "Tool"), body: clipText(result, 160) };
 }
 
 // Type-colored accents so the run graph reads at a glance (reasoning / response / research / tool).
 type AccentKey = "reasoning" | "response" | "research" | "tool";
 const NODE_ACCENT: Record<AccentKey, { chip: string; icon: string }> = {
   reasoning: { chip: "bg-amber-500/10 text-amber-600 dark:text-amber-400", icon: "text-amber-500" },
-  response: { chip: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", icon: "text-emerald-500" },
-  research: { chip: "bg-violet-500/10 text-violet-600 dark:text-violet-400", icon: "text-violet-500" },
+  response: {
+    chip: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    icon: "text-emerald-500",
+  },
+  research: {
+    chip: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    icon: "text-violet-500",
+  },
   tool: { chip: "bg-brand/10 text-brand", icon: "text-brand" },
 };
 
 const accentKeyFor = (kind: StepKind): AccentKey =>
-  kind === "thinking" ? "reasoning" : kind === "text" ? "response" : kind === "research" ? "research" : "tool";
+  kind === "thinking"
+    ? "reasoning"
+    : kind === "text"
+      ? "response"
+      : kind === "research"
+        ? "research"
+        : "tool";
 
 /** One card in the run graph — the agent's action, typed, with a preview of what it produced. */
-function GraphNode({ frame, active, onClick }: { frame: Frame; active: boolean; onClick: () => void }) {
+function GraphNode({
+  frame,
+  active,
+  onClick,
+}: {
+  frame: Frame;
+  active: boolean;
+  onClick: () => void;
+}) {
   const Icon = frameIconFor(frame);
   const sub = graphSubLabel(frame);
   const preview = graphNodePreview(frame);
@@ -514,13 +591,17 @@ function GraphNode({ frame, active, onClick }: { frame: Frame; active: boolean; 
           {sub && <span className="text-foreground/45 block truncate text-xs">{sub}</span>}
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
-
           {preview.meta && (
             <span className="text-foreground/50 bg-muted rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums">
               {preview.meta}
             </span>
           )}
-          <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase", accent.chip)}>
+          <span
+            className={cn(
+              "rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase",
+              accent.chip,
+            )}
+          >
             {preview.tag}
           </span>
         </span>
@@ -537,7 +618,9 @@ function GraphNode({ frame, active, onClick }: { frame: Frame; active: boolean; 
           </div>
         ) : (
           <div className="border-border/50 border-t px-3 py-2">
-            <p className="text-foreground/55 line-clamp-3 text-xs leading-relaxed">{preview.body}</p>
+            <p className="text-foreground/55 line-clamp-3 text-xs leading-relaxed">
+              {preview.body}
+            </p>
           </div>
         ))}
     </button>
@@ -557,7 +640,11 @@ function RunGraph({
   onSelect: (i: number) => void;
 }) {
   if (frames.length === 0)
-    return <div className="text-foreground/40 p-6 text-center text-sm">Nothing to graph yet.</div>;
+    return (
+      <div className="text-foreground/40 p-6 text-center text-sm">
+        {uiText("暂时没有可绘制的内容。", "Nothing to graph yet.")}
+      </div>
+    );
   return (
     <div className="flex flex-col items-center px-4 py-5">
       {frames.map((f, i) => {
@@ -573,7 +660,12 @@ function RunGraph({
                   <p className="text-foreground/45 mb-2 flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
                     <GitBranch className="h-3 w-3" /> {subs.length} agents in parallel
                   </p>
-                  <div className={cn("grid gap-1.5", subs.length > 1 ? "sm:grid-cols-2" : "grid-cols-1")}>
+                  <div
+                    className={cn(
+                      "grid gap-1.5",
+                      subs.length > 1 ? "sm:grid-cols-2" : "grid-cols-1",
+                    )}
+                  >
                     {subs.map((s) => (
                       <div
                         key={s.task_id}
@@ -584,7 +676,9 @@ function RunGraph({
                           <span className="text-foreground/80 block truncate text-xs font-medium">
                             {s.subagent_name}
                           </span>
-                          <span className="text-foreground/40 block truncate text-[11px]">{s.description}</span>
+                          <span className="text-foreground/40 block truncate text-[11px]">
+                            {s.description}
+                          </span>
                         </span>
                       </div>
                     ))}
@@ -657,20 +751,32 @@ function AgentComputer({
           <Monitor className="text-brand h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground text-sm leading-tight font-semibold">Agent&apos;s computer</p>
-          <p className="text-foreground/45 truncate text-xs">{promptTitle || "Waiting for the agent…"}</p>
+          <p className="text-foreground text-sm leading-tight font-semibold">
+            {uiText("Agent 的工作过程", "Agent's computer")}
+          </p>
+          <p className="text-foreground/45 truncate text-xs">
+            {promptTitle || uiText("等待 Agent 运行…", "Waiting for the agent…")}
+          </p>
         </div>
         {isLive && (
           <span className="text-brand bg-brand/10 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
-            <Radio className="h-3 w-3 animate-pulse" /> Live
+            <Radio className="h-3 w-3 animate-pulse" /> {uiText("实时", "Live")}
           </span>
         )}
         <button
           type="button"
           onClick={() => setView((v) => (v === "log" ? "graph" : "log"))}
           aria-pressed={view === "graph"}
-          aria-label={view === "graph" ? "Show step log" : "Show run graph"}
-          title={view === "graph" ? "Show step log" : "Show run graph"}
+          aria-label={
+            view === "graph"
+              ? uiText("显示步骤日志", "Show step log")
+              : uiText("显示运行图", "Show run graph")
+          }
+          title={
+            view === "graph"
+              ? uiText("显示步骤日志", "Show step log")
+              : uiText("显示运行图", "Show run graph")
+          }
           className={cn(
             "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
             view === "graph"
@@ -683,7 +789,7 @@ function AgentComputer({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close agent's computer"
+          aria-label={uiText("关闭 Agent 工作过程", "Close agent's computer")}
           className="text-foreground/40 hover:text-foreground hover:bg-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors"
         >
           <X className="h-4 w-4" />
@@ -696,7 +802,12 @@ function AgentComputer({
         ) : total === 0 ? (
           <div className="text-foreground/40 flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-sm">
             <Monitor className="text-foreground/20 h-8 w-8" />
-            <p>Reasoning, tool activity and responses show up here as the agent works.</p>
+            <p>
+              {uiText(
+                "Agent 工作时，推理过程、工具活动和回复会显示在这里。",
+                "Reasoning, tool activity and responses show up here as the agent works.",
+              )}
+            </p>
           </div>
         ) : (
           <div className="space-y-3 p-3">
@@ -708,8 +819,10 @@ function AgentComputer({
                 }}
                 onClick={() => onSelect(i)}
                 className={cn(
-                  "scroll-mt-3 cursor-pointer rounded-xl transition-all duration-300",
-                  i === index ? "ring-brand/40 bg-brand/[0.04] ring-2" : "opacity-70 hover:opacity-100",
+                  "cursor-pointer scroll-mt-3 rounded-xl transition-all duration-300",
+                  i === index
+                    ? "ring-brand/40 bg-brand/[0.04] ring-2"
+                    : "opacity-70 hover:opacity-100",
                 )}
               >
                 <FrameContent frame={f} />
@@ -727,7 +840,7 @@ function AgentComputer({
                 type="button"
                 onClick={onPrevPrompt}
                 disabled={!hasPrevPrompt}
-                aria-label="Previous prompt"
+                aria-label={uiText("上一个提示词", "Previous prompt")}
                 className="text-foreground/55 hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Prev
@@ -739,7 +852,7 @@ function AgentComputer({
                 type="button"
                 onClick={onNextPrompt}
                 disabled={!hasNextPrompt}
-                aria-label="Next prompt"
+                aria-label={uiText("下一个提示词", "Next prompt")}
                 className="text-foreground/55 hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
               >
                 Next <ChevronRight className="h-3.5 w-3.5" />
@@ -747,46 +860,46 @@ function AgentComputer({
             </div>
           )}
           <div className="flex items-center gap-2 px-3 py-2.5">
-          <button
-            type="button"
-            onClick={() => onStep(-1)}
-            disabled={!canStepBack}
-            aria-label="Previous step"
-            className="text-foreground/55 hover:text-foreground hover:bg-muted flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <SkipBack className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onStep(1)}
-            disabled={!canStepForward}
-            aria-label="Next step"
-            className="text-foreground/55 hover:text-foreground hover:bg-muted flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <SkipForward className="h-3.5 w-3.5" />
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, total - 1)}
-            value={index}
-            onChange={(e) => onScrub(Number(e.target.value))}
-            aria-label="Scrub through steps"
-            className="h-1.5 flex-1 cursor-pointer"
-            style={{ accentColor: "var(--color-brand)" }}
-          />
-          <span className="text-foreground/45 shrink-0 font-mono text-xs tabular-nums">
-            {index + 1}/{total}
-          </span>
-          {canFollow && !isLive && (
             <button
               type="button"
-              onClick={onFollow}
-              className="text-brand hover:bg-brand/10 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors"
+              onClick={() => onStep(-1)}
+              disabled={!canStepBack}
+              aria-label={uiText("上一步", "Previous step")}
+              className="text-foreground/55 hover:text-foreground hover:bg-muted flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <Radio className="h-3 w-3" /> Live
+              <SkipBack className="h-3.5 w-3.5" />
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => onStep(1)}
+              disabled={!canStepForward}
+              aria-label={uiText("下一步", "Next step")}
+              className="text-foreground/55 hover:text-foreground hover:bg-muted flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <SkipForward className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, total - 1)}
+              value={index}
+              onChange={(e) => onScrub(Number(e.target.value))}
+              aria-label={uiText("拖动查看步骤", "Scrub through steps")}
+              className="h-1.5 flex-1 cursor-pointer"
+              style={{ accentColor: "var(--color-brand)" }}
+            />
+            <span className="text-foreground/45 shrink-0 font-mono text-xs tabular-nums">
+              {index + 1}/{total}
+            </span>
+            {canFollow && !isLive && (
+              <button
+                type="button"
+                onClick={onFollow}
+                className="text-brand hover:bg-brand/10 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors"
+              >
+                <Radio className="h-3 w-3" /> Live
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -816,13 +929,13 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
   const frames = useMemo<Frame[]>(() => {
     const out: Frame[] = [];
     let promptKey = "p-0";
-    let promptTitle = "Prompt 1";
+    let promptTitle = uiText("提示词 1", "Prompt 1");
     let n = 0;
     displayMessages.forEach((m, i) => {
       if (m.role === "user") {
         n += 1;
         promptKey = `p-${i}`;
-        promptTitle = (m.content || `Prompt ${n}`).trim();
+        promptTitle = (m.content || uiText(`提示词 ${n}`, `Prompt ${n}`)).trim();
         return;
       }
       if (m.role !== "assistant") return;
@@ -864,7 +977,14 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
     const last = displayMessages[idx];
     if (!last) return [];
     if (last.role !== "assistant")
-      return [{ key: "read", label: "Reading the request", kind: "text", status: "active" }];
+      return [
+        {
+          key: "read",
+          label: uiText("读取请求", "Reading the request"),
+          kind: "text",
+          status: "active",
+        },
+      ];
     const turn = turnSteps(last);
     const built = turn.length;
     return turn.map((s, k) => ({
@@ -878,17 +998,22 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
   const doneCount = steps.filter((s) => s.status === "done").length;
   const allDone = steps.length > 0 && doneCount === steps.length;
   const activeStep = steps.find((s) => s.status === "active") ?? steps.at(-1) ?? null;
-  const activity = activeStep?.label ?? "Working";
+  const activity = activeStep?.label ?? uiText("处理中", "Working");
 
   const liveIdx = activeStep ? (frameByKey.get(activeStep.key) ?? null) : null;
   const lastLiveIdx = useRef(0);
   useEffect(() => {
     if (pinnedIdx === null && liveIdx != null) lastLiveIdx.current = liveIdx;
   }, [pinnedIdx, liveIdx]);
-  const shownIdx = clamp(pinnedIdx ?? liveIdx ?? lastLiveIdx.current, 0, Math.max(0, totalSteps - 1));
+  const shownIdx = clamp(
+    pinnedIdx ?? liveIdx ?? lastLiveIdx.current,
+    0,
+    Math.max(0, totalSteps - 1),
+  );
   const shownFrame = frames[shownIdx] ?? null;
   // The computer shows only the current prompt's frames — not the whole conversation.
-  const currentGroup = promptGroups.find((g) => g.key === shownFrame?.promptKey) ?? promptGroups[0] ?? null;
+  const currentGroup =
+    promptGroups.find((g) => g.key === shownFrame?.promptKey) ?? promptGroups[0] ?? null;
   const groupFrames = currentGroup?.frames ?? [];
   const localIndex = Math.max(
     0,
@@ -1006,7 +1131,8 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
       touchY = y;
     };
     const onPointerDown = (e: PointerEvent) => {
-      const inScrollbar = e.clientX - container.getBoundingClientRect().left >= container.clientWidth;
+      const inScrollbar =
+        e.clientX - container.getBoundingClientRect().left >= container.clientWidth;
       if (inScrollbar) setFollowing(false);
     };
     container.addEventListener("wheel", onWheel, { passive: true });
@@ -1038,8 +1164,12 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
   const panelVisible = panelOpen && !showPrePlay;
 
   return (
-
-    <div className={cn("mx-auto flex h-[calc(100vh-3.5rem)] w-full", panelVisible ? "max-w-none" : "max-w-4xl")}>
+    <div
+      className={cn(
+        "mx-auto flex h-[calc(100vh-3.5rem)] w-full",
+        panelVisible ? "max-w-none" : "max-w-4xl",
+      )}
+    >
       {/* Chat + dock column — grows to fill the left; the panel takes a fixed share on the right */}
       <div className={cn("flex min-w-0 flex-1 flex-col px-4", panelVisible && "hidden lg:flex")}>
         {/* Messages — scrollable container, fills remaining height */}
@@ -1067,7 +1197,7 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
               type="button"
               onClick={play}
               className="group/btn relative outline-none"
-              aria-label="Watch replay"
+              aria-label={uiText("观看回放", "Watch replay")}
             >
               <span className="bg-brand/30 absolute inset-0 animate-ping rounded-full" />
               <span
@@ -1083,7 +1213,9 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
             </button>
 
             <div className="text-center">
-              <p className="text-xl font-semibold text-white">Watch the agent work</p>
+              <p className="text-xl font-semibold text-white">
+                {uiText("观看 Agent 工作", "Watch the agent work")}
+              </p>
               <p className="mt-1.5 font-mono text-sm text-white/60">
                 {messages.length} messages · replayed live
               </p>
@@ -1128,7 +1260,12 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
                   className="hover:bg-muted/40 -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-3 rounded-lg px-1.5 py-1.5 text-left transition-colors"
                 >
                   <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
-                    <span className={cn("bg-brand/12 absolute inset-0 rounded-full", !allDone && !paused && "animate-pulse")} />
+                    <span
+                      className={cn(
+                        "bg-brand/12 absolute inset-0 rounded-full",
+                        !allDone && !paused && "animate-pulse",
+                      )}
+                    />
                     {allDone ? (
                       <Check className="text-brand relative h-4 w-4" strokeWidth={2.5} />
                     ) : paused ? (
@@ -1139,11 +1276,18 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-foreground block truncate text-sm font-semibold">
-                      {allDone ? "Done" : paused ? "Paused" : activity}
+                      {allDone
+                        ? uiText("已完成", "Done")
+                        : paused
+                          ? uiText("已暂停", "Paused")
+                          : activity}
                     </span>
                     {steps.length > 0 && (
                       <span className="text-foreground/45 block text-xs">
-                        {doneCount} of {steps.length} {steps.length === 1 ? "step" : "steps"}
+                        {uiText(
+                          `已完成 ${doneCount} / ${steps.length} 个步骤`,
+                          `${doneCount} of ${steps.length} ${steps.length === 1 ? "step" : "steps"}`,
+                        )}
                       </span>
                     )}
                   </span>
@@ -1195,15 +1339,19 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
                     className="text-foreground/55 hover:text-foreground hover:bg-muted inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
                   >
                     <FastForward className="h-3.5 w-3.5" />
-                    Skip to end
+                    {uiText("跳到结尾", "Skip to end")}
                   </button>
                   <button
                     type="button"
                     onClick={paused ? resume : pause}
                     className="text-foreground/55 hover:text-foreground hover:bg-muted inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
                   >
-                    {paused ? <Play className="h-3.5 w-3.5 fill-current" /> : <Pause className="h-3.5 w-3.5" />}
-                    {paused ? "Resume" : "Pause"}
+                    {paused ? (
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                    ) : (
+                      <Pause className="h-3.5 w-3.5" />
+                    )}
+                    {paused ? uiText("继续", "Resume") : uiText("暂停", "Pause")}
                   </button>
                 </div>
               </div>
@@ -1214,10 +1362,14 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
               <div className="flex items-center gap-2.5 px-3 py-3">
                 <ToolThumb frame={shownFrame} onClick={togglePanel} live={false} />
                 <span className="min-w-0 flex-1">
-                  <span className="text-foreground block text-sm font-semibold">Replay complete</span>
+                  <span className="text-foreground block text-sm font-semibold">
+                    {uiText("回放完成", "Replay complete")}
+                  </span>
                   <span className="text-foreground/45 block text-xs">
-                    {promptGroups.length} {promptGroups.length === 1 ? "prompt" : "prompts"} · {totalSteps}{" "}
-                    {totalSteps === 1 ? "step" : "steps"}
+                    {uiText(
+                      `${promptGroups.length} 个提示词 · ${totalSteps} 个步骤`,
+                      `${promptGroups.length} ${promptGroups.length === 1 ? "prompt" : "prompts"} · ${totalSteps} ${totalSteps === 1 ? "step" : "steps"}`,
+                    )}
                   </span>
                 </span>
               </div>
@@ -1239,7 +1391,9 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
                             open && "rotate-180",
                           )}
                         />
-                        <span className="text-foreground/80 min-w-0 flex-1 truncate text-sm">{g.title}</span>
+                        <span className="text-foreground/80 min-w-0 flex-1 truncate text-sm">
+                          {g.title}
+                        </span>
                         <span className="text-foreground/40 shrink-0 font-mono text-xs tabular-nums">
                           {g.frames.length}
                         </span>
@@ -1312,7 +1466,5 @@ export function DemoReplay({ rawMessages }: DemoReplayProps) {
         </aside>
       )}
     </div>
-
   );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useLocale } from "next-intl";
 
 interface RatingDayPoint {
   date: string;
@@ -13,6 +14,7 @@ interface RatingDayPoint {
  * import recharts — loaded on demand via `next/dynamic`.
  */
 export function RatingsChart({ data }: { data: RatingDayPoint[] }) {
+  const isChinese = useLocale() === "zh";
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barGap={2}>
@@ -50,14 +52,14 @@ export function RatingsChart({ data }: { data: RatingDayPoint[] }) {
         />
         <Bar
           dataKey="likes"
-          name="Likes"
+          name={isChinese ? "喜欢" : "Likes"}
           fill="oklch(from var(--color-foreground) l c h / 0.75)"
           radius={[3, 3, 0, 0]}
           maxBarSize={24}
         />
         <Bar
           dataKey="dislikes"
-          name="Dislikes"
+          name={isChinese ? "不喜欢" : "Dislikes"}
           fill="oklch(from var(--color-foreground) l c h / 0.3)"
           radius={[3, 3, 0, 0]}
           maxBarSize={24}
@@ -92,4 +94,3 @@ function RatingsTooltip({
     </div>
   );
 }
-

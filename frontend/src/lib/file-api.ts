@@ -3,6 +3,7 @@
  */
 
 import { ApiError } from "./api-client";
+import { uiText } from "./utils";
 
 export interface FileUploadResponse {
   id: string;
@@ -22,8 +23,10 @@ export async function uploadFile(file: File): Promise<FileUploadResponse> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Upload failed" }));
-    throw new ApiError(response.status, error.detail || "Upload failed", error);
+    const error = await response.json().catch(() => ({
+      detail: uiText("上传失败", "Upload failed"),
+    }));
+    throw new ApiError(response.status, error.detail || uiText("上传失败", "Upload failed"), error);
   }
 
   return response.json();

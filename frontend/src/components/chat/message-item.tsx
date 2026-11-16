@@ -10,12 +10,22 @@ import { useChatStore, useFilePreviewStore } from "@/stores";
 import { useSourcesPanelStore } from "@/stores/sources-panel-store";
 import { Bot, FileText, Globe, Paperclip, RefreshCw, User } from "lucide-react";
 import Image from "next/image";
+import { useLocale } from "next-intl";
 import { useAuthStore } from "@/stores";
 import { getFileUrl } from "@/lib/file-api";
 import { extractSources } from "@/lib/chat-sources";
 import type { SourceItem } from "@/lib/chat-sources";
 
-function ThinkingBlock({ text, open, isStreaming }: { text: string; open: boolean; isStreaming: boolean }) {
+function ThinkingBlock({
+  text,
+  open,
+  isStreaming,
+}: {
+  text: string;
+  open: boolean;
+  isStreaming: boolean;
+}) {
+  const isChinese = useLocale() === "zh";
   return (
     <details
       className="border-foreground/10 bg-muted/40 group rounded-2xl rounded-tl-sm border px-3 py-2 sm:px-4"
@@ -23,7 +33,7 @@ function ThinkingBlock({ text, open, isStreaming }: { text: string; open: boolea
     >
       <summary className="text-foreground/55 hover:text-foreground/80 flex cursor-pointer items-center gap-2 font-mono text-[10px] tracking-wider uppercase select-none">
         <span className="bg-foreground/30 inline-block h-1.5 w-1.5 rounded-full" />
-        Thinking
+        {isChinese ? "思考过程" : "Thinking"}
         {isStreaming && (
           <span className="bg-foreground/40 inline-block h-1 w-1 animate-pulse rounded-full" />
         )}
@@ -50,9 +60,7 @@ function TextBubble({
     <div
       className={cn(
         "relative rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5",
-        isUser
-          ? "bg-foreground text-background rounded-tr-sm"
-          : "bg-muted rounded-tl-sm",
+        isUser ? "bg-foreground text-background rounded-tr-sm" : "bg-muted rounded-tl-sm",
       )}
     >
       {isUser ? (
@@ -69,13 +77,8 @@ function TextBubble({
   );
 }
 
-function SourcesButton({
-  sources,
-  onClick,
-}: {
-  sources: SourceItem[];
-  onClick: () => void;
-}) {
+function SourcesButton({ sources, onClick }: { sources: SourceItem[]; onClick: () => void }) {
+  const isChinese = useLocale() === "zh";
   const ragCount = sources.filter((s) => s.type === "rag").length;
   const webCount = sources.filter((s) => s.type === "web").length;
 
@@ -98,7 +101,9 @@ function SourcesButton({
         )}
       </span>
       <span className="text-foreground/60 text-[11px] font-medium">
-        {sources.length} source{sources.length !== 1 ? "s" : ""}
+        {isChinese
+          ? `${sources.length} 个来源`
+          : `${sources.length} source${sources.length !== 1 ? "s" : ""}`}
       </span>
     </button>
   );
@@ -111,6 +116,7 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message, groupPosition, onRegenerate }: MessageItemProps) {
+  const isChinese = useLocale() === "zh";
   const isUser = message.role === "user";
   const updateMessage = useChatStore((state) => state.updateMessage);
   const openPreview = useFilePreviewStore((s) => s.open);
@@ -120,9 +126,7 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
 
   const sources = !isUser ? extractSources(message) : [];
   const hasSources = sources.length > 0 && !message.isStreaming;
-  const onCiteClick = hasSources
-    ? (index: number) => openSources(sources, index)
-    : undefined;
+  const onCiteClick = hasSources ? (index: number) => openSources(sources, index) : undefined;
 
   return (
     <div
@@ -131,9 +135,11 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
         isGrouped ? "py-2 sm:py-3" : "py-3 sm:py-4",
         isUser && "flex-row-reverse",
       )}
-    >      {isGrouped && !isUser && (
+    >
+      {" "}
+      {isGrouped && !isUser && (
         <div
-          className="absolute left-[15px] w-0.5 bg-border sm:left-[17px]"
+          className="bg-border absolute left-[15px] w-0.5 sm:left-[17px]"
           style={
             groupPosition === "first"
               ? { top: "24px", bottom: "0" }
@@ -143,7 +149,6 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
           }
         />
       )}
-
       <div
         className={cn(
           "z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full sm:h-9 sm:w-9",
@@ -166,7 +171,6 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
           <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
         )}
       </div>
-
       <div
         className={cn(
           "max-w-[88%] flex-1 space-y-2 overflow-hidden sm:max-w-[85%]",
@@ -189,7 +193,7 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
                       key={att.file.id}
                       onClick={() => openPreview(att.file)}
                       className="hover:ring-foreground/30 block overflow-hidden rounded-xl border ring-2 ring-transparent transition-all"
-                      title={`Open ${att.file.filename}`}
+                      title={isChinese ? `打开 ${att.file.filename}` : `Open ${att.file.filename}`}
                     >
                       <Image
                         src={getFileUrl(att.file.id)}
@@ -208,7 +212,11 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
                       onClick={() => openPreview(att.file)}
                     />
                   ) : (
-                    <FileChip key={att.id} filename="Attached file" href={getFileUrl(att.id)} />
+                    <FileChip
+                      key={att.id}
+                      filename={isChinese ? "附件" : "Attached file"}
+                      href={getFileUrl(att.id)}
+                    />
                   ),
                 )}
               </div>
@@ -241,7 +249,9 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
                     <span className="bg-muted-foreground/40 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:150ms]" />
                     <span className="bg-muted-foreground/40 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:300ms]" />
                   </div>
-                  <span className="text-muted-foreground text-xs">Thinking...</span>
+                  <span className="text-muted-foreground text-xs">
+                    {isChinese ? "思考中…" : "Thinking..."}
+                  </span>
                 </div>
               )}
 
@@ -298,10 +308,9 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
                   )}
                   {message.toolCalls && message.toolCalls.length > 0 && (
                     <div className="w-full space-y-2">
-                      {message.toolCalls
-                        .map((toolCall) => (
-                          <ToolCallCard key={toolCall.id} toolCall={toolCall} />
-                        ))}
+                      {message.toolCalls.map((toolCall) => (
+                        <ToolCallCard key={toolCall.id} toolCall={toolCall} />
+                      ))}
                     </div>
                   )}
                 </>
@@ -337,8 +346,8 @@ export function MessageItem({ message, groupPosition, onRegenerate }: MessageIte
               <button
                 type="button"
                 onClick={onRegenerate}
-                title="Regenerate response"
-                aria-label="Regenerate response"
+                title={isChinese ? "重新生成回复" : "Regenerate response"}
+                aria-label={isChinese ? "重新生成回复" : "Regenerate response"}
                 className="bg-muted hover:bg-muted/80 text-foreground/70 hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <RefreshCw className="h-3 w-3" />

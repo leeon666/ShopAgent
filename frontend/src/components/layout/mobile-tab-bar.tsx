@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import {
-  LayoutDashboard,
-  MessageSquare,
-  Settings,
-  ShoppingBag,
-} from "lucide-react";
+import { LayoutDashboard, MessageSquare, Settings, ShoppingBag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { ROUTES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 interface TabItem {
   label: string;
@@ -50,7 +45,7 @@ export function MobileTabBar() {
   return (
     <nav
       role="navigation"
-      aria-label="Primary"
+      aria-label={uiText("主导航", "Primary")}
       className="border-foreground/10 bg-background/95 supports-[backdrop-filter]:bg-background/85 fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
     >
       {items.map((item) => {

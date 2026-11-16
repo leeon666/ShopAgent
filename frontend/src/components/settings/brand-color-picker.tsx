@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -98,6 +99,7 @@ function applyPreset(p: Preset) {
 }
 
 export function BrandColorPicker() {
+  const isChinese = useLocale() === "zh";
   const defaultPreset = PRESETS.find((p) => p.key === DEFAULT_PRESET_KEY) ?? PRESETS[0]!;
   const [active, setActive] = useState<string>(defaultPreset.key);
 
@@ -145,8 +147,28 @@ export function BrandColorPicker() {
               {isActive && <Check className="h-4 w-4" style={{ color: `oklch(${p.fgL}% 0 0)` }} />}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-foreground text-sm font-semibold">{p.label}</p>
-              <p className="text-foreground/55 truncate text-xs">{p.description}</p>
+              <p className="text-foreground text-sm font-semibold">
+                {isChinese
+                  ? ({
+                      blue: "蓝色",
+                      green: "绿色",
+                      red: "红色",
+                      violet: "紫色",
+                      orange: "橙色",
+                    }[p.key] ?? p.label)
+                  : p.label}
+              </p>
+              <p className="text-foreground/55 truncate text-xs">
+                {isChinese
+                  ? ({
+                      blue: "经典 SaaS 风格",
+                      green: "清新、沉稳、适合健康科技",
+                      red: "温暖、有活力",
+                      violet: "现代 AI 风格",
+                      orange: "温暖、友好、适合消费者产品",
+                    }[p.key] ?? p.description)
+                  : p.description}
+              </p>
             </div>
           </button>
         );
@@ -154,4 +176,3 @@ export function BrandColorPicker() {
     </div>
   );
 }
-

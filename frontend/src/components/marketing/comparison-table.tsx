@@ -1,6 +1,6 @@
 import { Check, Minus, X, type LucideIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 type Cell = "yes" | "partial" | "no";
 
@@ -33,10 +33,11 @@ export function ComparisonTable({ brand, alternatives, rows }: ComparisonTablePr
     <>
       <div className="mb-14 max-w-2xl">
         <div className="mb-5">
-          <span className="eyebrow-badge">Why teams choose us</span>
+          <span className="eyebrow-badge">{uiText("为什么选择我们", "Why teams choose us")}</span>
         </div>
         <h2 className="text-display-lg text-foreground [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
-          The difference is the <em>grounding.</em>
+          {uiText("关键差异在于", "The difference is the ")}
+          <em>{uiText("事实依据。", "grounding.")}</em>
         </h2>
       </div>
 
@@ -45,7 +46,9 @@ export function ComparisonTable({ brand, alternatives, rows }: ComparisonTablePr
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
               <tr className="border-foreground/10 border-b">
-                <th className="text-foreground/55 eyebrow px-6 py-5 font-medium">Capability</th>
+                <th className="text-foreground/55 eyebrow px-6 py-5 font-medium">
+                  {uiText("能力", "Capability")}
+                </th>
                 <th className="px-6 py-5 text-center">
                   <span className="bg-brand text-brand-foreground font-display inline-flex rounded-full px-3 py-1 text-sm font-bold">
                     {brand}

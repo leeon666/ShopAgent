@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Globe, Monitor, Smartphone, Trash2 } from "lucide-react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -22,7 +23,14 @@ import {
 import { SectionCard } from "@/components/settings/settings-section";
 import { useAuth } from "@/hooks";
 import { apiClient, ApiError } from "@/lib/api-client";
-import { cn, formatDate, getErrorMessage, isAppAdmin, MAX_AVATAR_SIZE_BYTES, timeAgo } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  getErrorMessage,
+  isAppAdmin,
+  MAX_AVATAR_SIZE_BYTES,
+  timeAgo,
+} from "@/lib/utils";
 import { useAuthStore } from "@/stores";
 import type { Session, SessionListResponse, User } from "@/types";
 
@@ -33,6 +41,7 @@ function DeviceIcon({ type }: { type?: string | null }) {
 }
 
 export default function ProfileSettingsPage() {
+  const isChinese = useLocale() === "zh";
   const { user } = useAuth();
   const { setUser, bumpAvatarVersion, avatarVersion } = useAuthStore();
 
@@ -81,15 +90,21 @@ export default function ProfileSettingsPage() {
       if (email !== user.email) payload.email = email;
       if (name !== (user.full_name ?? "")) payload.full_name = name || null;
       if (Object.keys(payload).length === 0) {
-        toast.info("Nothing changed");
+        toast.info(isChinese ? "没有需要保存的修改" : "Nothing changed");
         setSaving(false);
         return;
       }
       const updated = await apiClient.patch<User>("/users/me", payload);
       setUser(updated);
-      toast.success("Profile updated");
+      toast.success(isChinese ? "个人资料已更新" : "Profile updated");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to update profile");
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : isChinese
+            ? "更新个人资料失败"
+            : "Failed to update profile",
+      );
     } finally {
       setSaving(false);
     }
@@ -100,7 +115,7 @@ export default function ProfileSettingsPage() {
     if (!file) return;
     e.target.value = "";
     if (file.size > MAX_AVATAR_SIZE_BYTES) {
-      toast.error("Avatar too large. Maximum 2MB.");
+      toast.error(isChinese ? "头像文件过大，最大支持 2MB。" : "Avatar too large. Maximum 2MB.");
       return;
     }
     setAvatarUploading(true);
@@ -109,15 +124,17 @@ export default function ProfileSettingsPage() {
       formData.append("file", file);
       const res = await fetch("/api/users/me/avatar", { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "Upload failed" }));
-        throw new Error(err.detail || "Upload failed");
+        const err = await res.json().catch(() => ({
+          detail: isChinese ? "上传失败" : "Upload failed",
+        }));
+        throw new Error(err.detail || (isChinese ? "上传失败" : "Upload failed"));
       }
       const updated = await res.json();
       setUser(updated);
       bumpAvatarVersion();
-      toast.success("Avatar updated");
+      toast.success(isChinese ? "头像已更新" : "Avatar updated");
     } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to upload avatar"));
+      toast.error(getErrorMessage(err, isChinese ? "上传头像失败" : "Failed to upload avatar"));
     } finally {
       setAvatarUploading(false);
     }
@@ -127,9 +144,9 @@ export default function ProfileSettingsPage() {
     try {
       await apiClient.delete(`/sessions/${sessionId}`);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      toast.success("Session revoked");
+      toast.success(isChinese ? "登录会话已撤销" : "Session revoked");
     } catch {
-      toast.error("Failed to revoke session");
+      toast.error(isChinese ? "撤销登录会话失败" : "Failed to revoke session");
     }
   };
 
@@ -137,9 +154,9 @@ export default function ProfileSettingsPage() {
     try {
       await apiClient.delete("/sessions");
       setSessions((prev) => prev.filter((s) => s.is_current));
-      toast.success("All other sessions revoked");
+      toast.success(isChinese ? "其他登录会话已全部撤销" : "All other sessions revoked");
     } catch {
-      toast.error("Failed to revoke sessions");
+      toast.error(isChinese ? "撤销登录会话失败" : "Failed to revoke sessions");
     }
   };
 
@@ -150,15 +167,27 @@ export default function ProfileSettingsPage() {
   return (
     <div className="space-y-6">
       <SectionCard
-        title="Avatar"
-        description="Square images look best. Up to 2MB. JPG, PNG, WEBP, or GIF."
+        title={isChinese ? "头像" : "Avatar"}
+        description={
+          isChinese
+            ? "建议使用正方形图片，最大 2MB，支持 JPG、PNG、WEBP 或 GIF。"
+            : "Square images look best. Up to 2MB. JPG, PNG, WEBP, or GIF."
+        }
       >
         <div className="flex items-center gap-5">
           <button
             type="button"
             onClick={() => avatarInputRef.current?.click()}
             disabled={avatarUploading}
-            aria-label={user.avatar_url ? "Replace avatar" : "Upload avatar"}
+            aria-label={
+              user.avatar_url
+                ? isChinese
+                  ? "更换头像"
+                  : "Replace avatar"
+                : isChinese
+                  ? "上传头像"
+                  : "Upload avatar"
+            }
             className="border-border bg-muted hover:bg-accent group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition-colors"
           >
             {user.avatar_url ? (
@@ -195,13 +224,20 @@ export default function ProfileSettingsPage() {
               disabled={avatarUploading}
             >
               {avatarUploading
-                ? "Uploading…"
+                ? isChinese
+                  ? "上传中…"
+                  : "Uploading…"
                 : user.avatar_url
-                  ? "Replace avatar"
-                  : "Upload avatar"}
+                  ? isChinese
+                    ? "更换头像"
+                    : "Replace avatar"
+                  : isChinese
+                    ? "上传头像"
+                    : "Upload avatar"}
             </Button>
             <p className="text-muted-foreground mt-2 text-xs">
-              {isAppAdmin(user) ? "Admin · " : ""}Member since{" "}
+              {isAppAdmin(user) ? (isChinese ? "管理员 · " : "Admin · ") : ""}
+              {isChinese ? "加入于 " : "Member since "}
               {formatDate(user.created_at)}
             </p>
           </div>
@@ -209,27 +245,35 @@ export default function ProfileSettingsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Personal info"
-        description="Visible to teammates in shared organizations."
+        title={isChinese ? "个人信息" : "Personal info"}
+        description={
+          isChinese
+            ? "共享组织中的成员可以看到这些信息。"
+            : "Visible to teammates in shared organizations."
+        }
         action={
           <Button onClick={handleSaveProfile} disabled={saving} size="sm">
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? (isChinese ? "保存中…" : "Saving…") : isChinese ? "保存修改" : "Save changes"}
           </Button>
         }
       >
         <div className="space-y-4">
-          <FormField label="Display name" htmlFor="profile-name">
+          <FormField label={isChinese ? "显示名称" : "Display name"} htmlFor="profile-name">
             <Input
               id="profile-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="How should we call you?"
+              placeholder={isChinese ? "你希望别人怎么称呼你？" : "How should we call you?"}
             />
           </FormField>
           <FormField
-            label="Email"
+            label={isChinese ? "邮箱" : "Email"}
             htmlFor="profile-email"
-            description="Changing email may require re-verification depending on your auth setup."
+            description={
+              isChinese
+                ? "修改邮箱后，可能需要根据当前认证方式重新验证。"
+                : "Changing email may require re-verification depending on your auth setup."
+            }
           >
             <Input
               id="profile-email"
@@ -243,26 +287,34 @@ export default function ProfileSettingsPage() {
 
       {sessionsAvailable && (
         <SectionCard
-          title="Active sessions"
-          description="Devices currently signed in to your account."
+          title={isChinese ? "活动登录会话" : "Active sessions"}
+          description={
+            isChinese ? "当前已登录此账户的设备。" : "Devices currently signed in to your account."
+          }
           action={
             sessions.filter((s) => !s.is_current).length > 0 ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm">
-                    Revoke all others
+                    {isChinese ? "撤销其他会话" : "Revoke all others"}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Revoke all other sessions?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {isChinese ? "要撤销其他所有会话吗？" : "Revoke all other sessions?"}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Every device signed in to your account will be signed out, except this one.
+                      {isChinese
+                        ? "除当前设备外，所有已登录此账户的设备都会退出登录。"
+                        : "Every device signed in to your account will be signed out, except this one."}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRevokeAll}>Revoke all</AlertDialogAction>
+                    <AlertDialogCancel>{isChinese ? "取消" : "Cancel"}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRevokeAll}>
+                      {isChinese ? "全部撤销" : "Revoke all"}
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -276,7 +328,9 @@ export default function ProfileSettingsPage() {
               ))}
             </div>
           ) : sessions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No session data available.</p>
+            <p className="text-muted-foreground text-sm">
+              {isChinese ? "暂无登录会话数据。" : "No session data available."}
+            </p>
           ) : (
             <ul className="space-y-2">
               {sessions.map((session) => (
@@ -293,16 +347,26 @@ export default function ProfileSettingsPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-foreground flex items-center gap-2 text-sm font-medium">
-                        <span className="truncate">{session.device_name || "Unknown device"}</span>
+                        <span className="truncate">
+                          {session.device_name &&
+                          !["unknown browser", "unknown device"].includes(
+                            session.device_name.toLowerCase(),
+                          )
+                            ? session.device_name
+                            : isChinese
+                              ? "未知浏览器"
+                              : "Unknown browser"}
+                        </span>
                         {session.is_current && (
                           <span className="bg-card border-border text-muted-foreground inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
-                            Current
+                            {isChinese ? "当前" : "Current"}
                           </span>
                         )}
                       </p>
                       <p className="text-muted-foreground truncate text-xs">
                         {session.ip_address && `${session.ip_address} · `}
-                        Last active {timeAgo(session.last_used_at)}
+                        {isChinese ? "最后活动：" : "Last active "}
+                        {timeAgo(session.last_used_at)}
                       </p>
                     </div>
                   </div>
@@ -312,8 +376,8 @@ export default function ProfileSettingsPage() {
                       size="sm"
                       className="text-muted-foreground hover:text-destructive h-8 shrink-0"
                       onClick={() => handleRevokeSession(session.id)}
-                      title="Revoke session"
-                      aria-label="Revoke session"
+                      title={isChinese ? "撤销会话" : "Revoke session"}
+                      aria-label={isChinese ? "撤销会话" : "Revoke session"}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -327,4 +391,3 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
-

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { FileText, Globe, Link, X } from "lucide-react";
+import { useLocale } from "next-intl";
 import { useSourcesPanelStore } from "@/stores/sources-panel-store";
 import type { SourceItem } from "@/lib/chat-sources";
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 function ScoreDot({ score }: { score: number }) {
   const tone =
@@ -12,18 +13,12 @@ function ScoreDot({ score }: { score: number }) {
   return (
     <span
       className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)}
-      title={`Relevance: ${score.toFixed(2)}`}
+      title={`${uiText("相关度", "Relevance")}: ${score.toFixed(2)}`}
     />
   );
 }
 
-function RAGSourceRow({
-  item,
-  highlighted,
-}: {
-  item: SourceItem;
-  highlighted: boolean;
-}) {
+function RAGSourceRow({ item, highlighted }: { item: SourceItem; highlighted: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,13 +63,7 @@ function RAGSourceRow({
   );
 }
 
-function WebSourceRow({
-  item,
-  highlighted,
-}: {
-  item: SourceItem;
-  highlighted: boolean;
-}) {
+function WebSourceRow({ item, highlighted }: { item: SourceItem; highlighted: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -125,6 +114,7 @@ function WebSourceRow({
 }
 
 export function SourcesPanel() {
+  const isChinese = useLocale() === "zh";
   const { isOpen, sources, highlightedIndex, close } = useSourcesPanelStore();
 
   useEffect(() => {
@@ -146,13 +136,13 @@ export function SourcesPanel() {
       {/* Header */}
       <div className="border-foreground/8 flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-foreground text-sm font-semibold">
-          Sources
+          {isChinese ? "来源" : "Sources"}
           <span className="text-foreground/45 ml-2 font-normal">({sources.length})</span>
         </h2>
         <button
           type="button"
           onClick={close}
-          aria-label="Close sources panel"
+          aria-label={isChinese ? "关闭来源面板" : "Close sources panel"}
           className="text-foreground/50 hover:text-foreground hover:bg-foreground/8 rounded-md p-1 transition-colors"
         >
           <X className="h-4 w-4" />
@@ -165,7 +155,7 @@ export function SourcesPanel() {
           <section className="space-y-2">
             {ragSources.length > 0 && webSources.length > 0 && (
               <h3 className="text-foreground/45 font-mono text-[10px] tracking-wider uppercase">
-                Knowledge base
+                {isChinese ? "知识库" : "Knowledge base"}
               </h3>
             )}
             {ragSources.map((s) => (
@@ -182,7 +172,7 @@ export function SourcesPanel() {
           <section className="space-y-2">
             {ragSources.length > 0 && (
               <h3 className="text-foreground/45 font-mono text-[10px] tracking-wider uppercase">
-                Web
+                {isChinese ? "网页" : "Web"}
               </h3>
             )}
             {webSources.map((s) => (

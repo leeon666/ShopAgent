@@ -3,6 +3,7 @@
  */
 
 import { apiClient, ApiError } from "./api-client";
+import { uiText } from "./utils";
 
 export const RAG_API_ROUTES = {
   COLLECTIONS: "/v1/rag/collections",
@@ -123,7 +124,9 @@ export async function downloadKBDocument(
   mode: "download" | "view" = "download",
 ): Promise<void> {
   const res = await fetch(`/api/kb/${kbId}/documents/${doc.id}/download`);
-  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  if (!res.ok) {
+    throw new Error(uiText(`下载失败：${res.status}`, `Download failed: ${res.status}`));
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   if (mode === "view") {

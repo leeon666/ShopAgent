@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button, Badge, Spinner } from "@/components/ui";
 import { Send, Mic, MicOff, Paperclip, X, FileText, Upload } from "lucide-react";
 import Image from "next/image";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { uploadFile, getFileUrl, type FileUploadResponse } from "@/lib/file-api";
 import { getErrorMessage, MAX_UPLOAD_SIZE_MB } from "@/lib/utils";
@@ -35,6 +36,7 @@ export function ChatInput({
   slashContext,
   commands,
 }: ChatInputProps) {
+  const isChinese = useLocale() === "zh";
   const [message, setMessage] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<FileUploadResponse[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -100,7 +102,11 @@ export function ChatInput({
 
     const fileIds = attachedFiles.length > 0 ? attachedFiles.map((f) => f.id) : undefined;
     const files = attachedFiles.length > 0 ? attachedFiles : undefined;
-    onSend(trimmed || "Analyze the attached file(s)", fileIds, files);
+    onSend(
+      trimmed || (isChinese ? "请分析附件内容" : "Analyze the attached file(s)"),
+      fileIds,
+      files,
+    );
     setMessage("");
     setAttachedFiles([]);
   };
@@ -145,14 +151,18 @@ export function ChatInput({
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.info("Voice input is only supported in Chrome. Use Chrome for speech-to-text.");
+      toast.info(
+        isChinese
+          ? "语音输入目前仅支持 Chrome 浏览器。"
+          : "Voice input is only supported in Chrome. Use Chrome for speech-to-text.",
+      );
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = navigator.language || "en-US";
+    recognition.lang = isChinese ? "zh-CN" : navigator.language || "en-US";
 
     let finalTranscript = "";
 
@@ -179,35 +189,44 @@ export function ChatInput({
 
     recognition.onerror = () => {
       setIsListening(false);
-      toast.error("Speech recognition error");
+      toast.error(isChinese ? "语音识别失败" : "Speech recognition error");
     };
 
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
     finalTranscript = message;
-  }, [isListening, message]);
+  }, [isListening, message, isChinese]);
 
   // File upload to backend — shared by the file picker and drag-and-drop.
-  const uploadFiles = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    for (const file of files) {
-      if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
-        toast.error(`${file.name}: File too large. Maximum ${MAX_UPLOAD_SIZE_MB}MB.`);
-        continue;
-      }
+  const uploadFiles = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
+          toast.error(
+            isChinese
+              ? `${file.name}：文件过大，最大支持 ${MAX_UPLOAD_SIZE_MB}MB。`
+              : `${file.name}: File too large. Maximum ${MAX_UPLOAD_SIZE_MB}MB.`,
+          );
+          continue;
+        }
 
-      setIsUploading(true);
-      try {
-        const result = await uploadFile(file);
-        setAttachedFiles((prev) => [...prev, result]);
-      } catch (err) {
-        toast.error(`${file.name}: ${getErrorMessage(err, "Upload failed")}`);
-      } finally {
-        setIsUploading(false);
+        setIsUploading(true);
+        try {
+          const result = await uploadFile(file);
+          setAttachedFiles((prev) => [...prev, result]);
+        } catch (err) {
+          toast.error(
+            `${file.name}: ${getErrorMessage(err, isChinese ? "上传失败" : "Upload failed")}`,
+          );
+        } finally {
+          setIsUploading(false);
+        }
       }
-    }
-  }, []);
+    },
+    [isChinese],
+  );
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,7 +285,7 @@ export function ChatInput({
       {isDragging && (
         <div className="border-foreground/40 bg-card/95 text-foreground absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed text-sm font-medium backdrop-blur-sm">
           <span className="flex items-center gap-2">
-            <Upload className="h-4 w-4" /> Drop files to attach
+            <Upload className="h-4 w-4" /> {isChinese ? "松开即可添加附件" : "Drop files to attach"}
           </span>
         </div>
       )}
@@ -328,7 +347,7 @@ export function ChatInput({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={isChinese ? "输入消息…" : "Type a message..."}
           disabled={disabled}
           rows={1}
           className="placeholder:text-muted-foreground min-h-[40px] flex-1 resize-none scrollbar-thin bg-transparent py-2.5 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
@@ -342,8 +361,24 @@ export function ChatInput({
             onClick={toggleMic}
             disabled={disabled}
             className="h-9 w-9"
-            title={isListening ? "Stop recording" : "Voice input"}
-            aria-label={isListening ? "Stop recording" : "Voice input"}
+            title={
+              isListening
+                ? isChinese
+                  ? "停止录音"
+                  : "Stop recording"
+                : isChinese
+                  ? "语音输入"
+                  : "Voice input"
+            }
+            aria-label={
+              isListening
+                ? isChinese
+                  ? "停止录音"
+                  : "Stop recording"
+                : isChinese
+                  ? "语音输入"
+                  : "Voice input"
+            }
           >
             {isListening ? (
               <MicOff className="h-4 w-4 animate-pulse text-red-500" />
@@ -359,8 +394,8 @@ export function ChatInput({
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isUploading}
             className="h-9 w-9"
-            title="Attach file"
-            aria-label="Attach file"
+            title={isChinese ? "添加附件" : "Attach file"}
+            aria-label={isChinese ? "添加附件" : "Attach file"}
           >
             {isUploading ? (
               <Spinner className="text-muted-foreground h-4 w-4" />
@@ -383,10 +418,10 @@ export function ChatInput({
               size="icon"
               onClick={onStop}
               className="h-9 w-9 rounded-lg"
-              title="Stop generating"
+              title={isChinese ? "停止生成" : "Stop generating"}
             >
               <span className="h-3 w-3 rounded-[3px] bg-current" aria-hidden="true" />
-              <span className="sr-only">Stop generating</span>
+              <span className="sr-only">{isChinese ? "停止生成" : "Stop generating"}</span>
             </Button>
           ) : (
             <Button
@@ -396,7 +431,7 @@ export function ChatInput({
               className="h-9 w-9 rounded-lg"
             >
               {isProcessing ? <Spinner className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-              <span className="sr-only">Send message</span>
+              <span className="sr-only">{isChinese ? "发送消息" : "Send message"}</span>
             </Button>
           )}
         </div>

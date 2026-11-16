@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useConversationShares } from "@/hooks";
 import type { ConversationShare } from "@/types";
 import { getErrorMessage } from "@/lib/utils";
@@ -34,6 +34,7 @@ interface ShareDialogProps {
 
 export function ShareDialog({ conversationId, open, onOpenChange }: ShareDialogProps) {
   const t = useTranslations("chat");
+  const isChinese = useLocale() === "zh";
   const { shares, isLoading, shareConversation, fetchShares, revokeShare } =
     useConversationShares();
   const [email, setEmail] = useState("");
@@ -126,15 +127,15 @@ export function ShareDialog({ conversationId, open, onOpenChange }: ShareDialogP
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="view">View</SelectItem>
-                <SelectItem value="edit">Edit</SelectItem>
+                <SelectItem value="view">{isChinese ? "仅查看" : "View"}</SelectItem>
+                <SelectItem value="edit">{isChinese ? "可编辑" : "Edit"}</SelectItem>
               </SelectContent>
             </Select>
             <Button
               onClick={handleShare}
               disabled={isLoading || isSharing}
               size="icon"
-              aria-label="Share conversation"
+              aria-label={isChinese ? "共享对话" : "Share conversation"}
             >
               {isSharing ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -163,7 +164,7 @@ export function ShareDialog({ conversationId, open, onOpenChange }: ShareDialogP
                 variant="secondary"
                 size="icon"
                 onClick={handleCopyLink}
-                aria-label="Copy share link"
+                aria-label={isChinese ? "复制共享链接" : "Copy share link"}
               >
                 <Copy className="h-4 w-4" aria-hidden />
               </Button>
@@ -171,7 +172,7 @@ export function ShareDialog({ conversationId, open, onOpenChange }: ShareDialogP
           </div>
           {shareLink && (
             <p className="text-muted-foreground text-xs break-all">
-              {copied ? "Copied!" : shareLink}
+              {copied ? (isChinese ? "已复制" : "Copied!") : shareLink}
             </p>
           )}
 
@@ -185,10 +186,20 @@ export function ShareDialog({ conversationId, open, onOpenChange }: ShareDialogP
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm">
-                      {share.shared_with_email || share.shared_with || "Link"}
+                      {share.shared_with_email ||
+                        share.shared_with ||
+                        (isChinese ? "链接" : "Link")}
                     </span>
-                    <Badge variant="secondary">{share.permission}</Badge>
-                    {share.share_token && <Badge variant="outline">Link</Badge>}
+                    <Badge variant="secondary">
+                      {isChinese
+                        ? share.permission === "edit"
+                          ? "可编辑"
+                          : "仅查看"
+                        : share.permission}
+                    </Badge>
+                    {share.share_token && (
+                      <Badge variant="outline">{isChinese ? "链接" : "Link"}</Badge>
+                    )}
                   </div>
                   <Button
                     variant="ghost"

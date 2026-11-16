@@ -1,4 +1,5 @@
 import { Quote } from "lucide-react";
+import { uiText } from "@/lib/utils";
 
 import { AnimatedNumber } from "./animated-number";
 
@@ -25,7 +26,7 @@ export function CaseStudy({ quote, name, role, company, metrics }: CaseStudyProp
 
       <div className="grid gap-12 md:grid-cols-[1.5fr_1fr] md:items-center">
         <div>
-          <span className="eyebrow-badge mb-8">Case study</span>
+          <span className="eyebrow-badge mb-8">{uiText("客户案例", "Case study")}</span>
           <Quote className="text-brand mb-5 h-9 w-9" />
           <blockquote className="text-display-md text-foreground/90 [&_em]:font-accent [&_em]:font-normal [&_em]:italic">
             &ldquo;{quote}&rdquo;
@@ -68,4 +69,3 @@ export function CaseStudy({ quote, name, role, company, metrics }: CaseStudyProp
     </div>
   );
 }
-

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 export interface Crumb {
   label: string;
@@ -36,7 +36,7 @@ export function PageHeader({
   return (
     <div className={cn("mb-6 md:mb-8", className)}>
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav aria-label="Breadcrumb" className="mb-3">
+        <nav aria-label={uiText("面包屑导航", "Breadcrumb")} className="mb-3">
           <ol className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
             {breadcrumbs.map((c, i) => {
               const last = i === breadcrumbs.length - 1;

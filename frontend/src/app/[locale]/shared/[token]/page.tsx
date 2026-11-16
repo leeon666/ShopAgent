@@ -18,7 +18,8 @@ async function fetchSharedConversation(token: string) {
 }
 
 export default async function SharedConversationPage({ params }: SharedConversationPageProps) {
-  const { token } = await params;
+  const { token, locale } = await params;
+  const isChinese = locale === "zh";
   const data = await fetchSharedConversation(token);
 
   if (!data || !data.conversation) {
@@ -26,9 +27,13 @@ export default async function SharedConversationPage({ params }: SharedConversat
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <MessageSquare className="text-muted-foreground mx-auto h-12 w-12" />
-          <h1 className="mt-4 text-xl font-semibold">Share link not found</h1>
+          <h1 className="mt-4 text-xl font-semibold">
+            {isChinese ? "共享链接不存在" : "Share link not found"}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            This share link may have expired or been revoked.
+            {isChinese
+              ? "该共享链接可能已过期或被撤销。"
+              : "This share link may have expired or been revoked."}
           </p>
         </div>
       </div>
@@ -41,9 +46,13 @@ export default async function SharedConversationPage({ params }: SharedConversat
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 border-b pb-4">
-        <h1 className="text-xl font-semibold">{conversation.title || "Shared Conversation"}</h1>
+        <h1 className="text-xl font-semibold">
+          {conversation.title || (isChinese ? "共享对话" : "Shared Conversation")}
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Shared conversation — {share.permission === "view" ? "read-only" : "view & edit"}
+          {isChinese
+            ? `共享对话 · ${share.permission === "view" ? "只读" : "可查看与编辑"}`
+            : `Shared conversation — ${share.permission === "view" ? "read-only" : "view & edit"}`}
         </p>
       </div>
 
@@ -66,7 +75,7 @@ export default async function SharedConversationPage({ params }: SharedConversat
 
         {messages.length === 0 && (
           <p className="text-muted-foreground py-12 text-center">
-            This conversation has no messages yet.
+            {isChinese ? "该对话暂无消息。" : "This conversation has no messages yet."}
           </p>
         )}
       </div>

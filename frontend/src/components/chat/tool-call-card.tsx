@@ -1,5 +1,6 @@
 "use client";
 import { useState, type MouseEvent } from "react";
+import { useLocale } from "next-intl";
 import { Card, CardContent, Button } from "@/components/ui";
 import type { ToolCall } from "@/types";
 import {
@@ -30,13 +31,12 @@ interface ToolCallCardProps {
 }
 
 export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCardProps) {
+  const isChinese = useLocale() === "zh";
   // Collapsed by default — the bar acts as the toggle. `showRaw` swaps the
   // formatted view for args + raw output (the </> button). Charts are the
   // exception: they're only useful when visible, so expand them by default.
   const [expanded, setExpanded] = useState(
-    defaultExpanded ||
-      toolCall.name === "ask_user" ||
-      false,
+    defaultExpanded || toolCall.name === "ask_user" || false,
   );
   const [showRaw, setShowRaw] = useState(false);
 
@@ -68,14 +68,30 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
   const isWebSearch = webResults !== null;
   const isAskUser = toolCall.name === "ask_user";
 
-  const hasSpecialRenderer =
-    isDateTime || isRAGSearch || isWebSearch || isAskUser;
-  const friendlyName = isDateTime
-    ? "Current Date & Time"
-    : isRAGSearch
-      ? "Knowledge Base Search"
-      : isWebSearch
-        ? "Web Search"
+  const hasSpecialRenderer = isDateTime || isRAGSearch || isWebSearch || isAskUser;
+  const toolNameZh: Record<string, string> = {
+    get_current_datetime: "当前日期与时间",
+    search_knowledge_base: "知识库检索",
+    search_documents: "知识库检索",
+    web_search_tool: "网页搜索",
+    search_web: "网页搜索",
+    ask_user: "向用户追问",
+    run_python: "运行 Python",
+    get_order: "查询订单",
+    get_logistics: "查询物流",
+    get_after_sales_ticket: "查询售后工单",
+    check_refund_eligibility: "校验退款资格",
+    search_after_sales_policy: "检索售后政策",
+    create_refund_proposal: "创建退款提案",
+  };
+  const friendlyName = isChinese
+    ? (toolNameZh[toolCall.name] ?? `工具：${toolCall.name}`)
+    : isDateTime
+      ? "Current Date & Time"
+      : isRAGSearch
+        ? "Knowledge Base Search"
+        : isWebSearch
+          ? "Web Search"
           : isAskUser
             ? "Question"
             : toolCall.name === "run_python"
@@ -88,9 +104,9 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
       ? Search
       : isWebSearch
         ? Globe
-          : isAskUser
-            ? MessageCircleQuestion
-            : Wrench;
+        : isAskUser
+          ? MessageCircleQuestion
+          : Wrench;
 
   const toggleExpanded = () => {
     setExpanded((prev) => {
@@ -110,7 +126,9 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
   // and swap the chevron/raw toggle for a spinner — the header becomes a step caption.
   const isRunning = toolCall.status === "running" || toolCall.status === "pending";
   const isError = toolCall.status === "error";
-  const liveCaption = toolCaption(toolCall.name);
+  const liveCaption = isChinese
+    ? `${toolNameZh[toolCall.name] ?? "工具调用"}进行中…`
+    : toolCaption(toolCall.name);
 
   return (
     <Card
@@ -163,13 +181,22 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {isRunning ? (
-            <Loader2 className="text-brand h-4 w-4 animate-spin" aria-label="Running" />
+            <Loader2
+              className="text-brand h-4 w-4 animate-spin"
+              aria-label={isChinese ? "运行中" : "Running"}
+            />
           ) : (
             <>
               {isError ? (
-                <XCircle className="text-destructive pop-in h-4 w-4 shrink-0" aria-label="Failed" />
+                <XCircle
+                  className="text-destructive pop-in h-4 w-4 shrink-0"
+                  aria-label={isChinese ? "失败" : "Failed"}
+                />
               ) : (
-                <CheckCircle2 className="text-brand pop-in h-4 w-4 shrink-0" aria-label="Done" />
+                <CheckCircle2
+                  className="text-brand pop-in h-4 w-4 shrink-0"
+                  aria-label={isChinese ? "完成" : "Done"}
+                />
               )}
               <Button
                 variant="ghost"
@@ -179,8 +206,24 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
                   showRaw && "text-primary",
                 )}
                 onClick={toggleRaw}
-                title={showRaw ? "Show formatted view" : "Show arguments + raw output"}
-                aria-label={showRaw ? "Show formatted view" : "Show arguments and raw output"}
+                title={
+                  showRaw
+                    ? isChinese
+                      ? "显示格式化视图"
+                      : "Show formatted view"
+                    : isChinese
+                      ? "显示参数和原始输出"
+                      : "Show arguments + raw output"
+                }
+                aria-label={
+                  showRaw
+                    ? isChinese
+                      ? "显示格式化视图"
+                      : "Show formatted view"
+                    : isChinese
+                      ? "显示参数和原始输出"
+                      : "Show arguments and raw output"
+                }
               >
                 <Code2 className="h-3.5 w-3.5" />
               </Button>

@@ -18,8 +18,7 @@ export const SITE = {
   /** Tagline used in title templates + OG defaults. */
   tagline: "面向真实业务的售后 Agent 平台",
   /** One-paragraph default description (≤160 chars for SERP truncation). */
-  description:
-    "商城订单、售后政策、Agent 工具调用与人工审批运行在同一套真实业务流程中。",
+  description: "商城订单、售后政策、Agent 工具调用与人工审批运行在同一套真实业务流程中。",
   /** Canonical absolute origin. NO trailing slash. */
   url:
     (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") as string | undefined) ??
@@ -48,7 +47,6 @@ export const SITE = {
 export const OG_LOCALE: Record<(typeof locales)[number], string> = {
   zh: "zh_CN",
   en: "en_US",
-  pl: "pl_PL",
 };
 
 interface PageMetaInput {

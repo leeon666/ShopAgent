@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
+import { uiText } from "@/lib/utils";
 
 export interface AdminUserRead {
   id: string;
@@ -57,7 +58,7 @@ export function useAdminUsers() {
         setUsers(data.items);
         setTotal(data.total);
       } catch {
-        toast.error("Failed to load users");
+        toast.error(uiText("加载用户失败", "Failed to load users"));
       } finally {
         setIsLoading(false);
       }
@@ -69,9 +70,9 @@ export function useAdminUsers() {
     try {
       const updated = await apiClient.patch<AdminUserRead>(`/admin/users/${userId}`, patch);
       setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
-      toast.success("User updated");
+      toast.success(uiText("用户已更新", "User updated"));
     } catch {
-      toast.error("Failed to update user");
+      toast.error(uiText("更新用户失败", "Failed to update user"));
     }
   }, []);
 
@@ -80,9 +81,9 @@ export function useAdminUsers() {
       await apiClient.delete(`/admin/users/${userId}`);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       setTotal((t) => t - 1);
-      toast.success("User deleted");
+      toast.success(uiText("用户已删除", "User deleted"));
     } catch {
-      toast.error("Failed to delete user");
+      toast.error(uiText("删除用户失败", "Failed to delete user"));
     }
   }, []);
 
@@ -94,7 +95,7 @@ export function useAdminUsers() {
       );
       return access_token;
     } catch {
-      toast.error("Failed to impersonate user");
+      toast.error(uiText("模拟登录失败", "Failed to impersonate user"));
       return null;
     } finally {
       setImpersonating(null);

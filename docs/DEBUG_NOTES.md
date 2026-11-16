@@ -98,6 +98,36 @@ docker compose -f docker-compose.dev.yml exec -T redis `
 
 前端检查通过：ESLint、TypeScript、34 个 Vitest 测试和 Next.js 生产构建。
 
+### 中文界面仍混有英文
+
+现象：切换到简体中文后，设置、初始化、后台管理、知识库、聊天控件和部分隐藏页面
+仍直接显示模板中的英文文案。
+
+根因：项目模板最初只把导航和少量页面接入了 `next-intl`，大量组件使用了硬编码英文；
+同时语言列表仍保留波兰语。
+
+修复：
+
+1. 语言列表收敛为 `zh` 和 `en`，删除 `messages/pl.json` 及相关波兰语计划文案。
+2. 设置页、引导页、后台管理、RAG、聊天、认证、错误页、演示页和公开营销页
+   对用户可见文案统一增加中文分支。
+3. 日期、相对时间、密码强度、命令面板、Cookie 提示、工具调用状态和常见 Toast
+   改为按当前语言显示。
+4. 中文模式下保留 RAG、API、CSV、JSON、Stripe 等标准技术名称。
+5. 增加语言配置回归测试，防止波兰语再次被加入。
+
+验证命令：
+
+```powershell
+cd frontend
+npm run lint -- --quiet
+npm run type-check
+npm run test:run
+npm run build
+```
+
+构建结果只保留 `zh` 和 `en` 两套静态路由。
+
 ## 已实证的闭环
 
 1. DeepSeek `deepseek-flash` 可访问，并返回 Token usage。
@@ -115,4 +145,3 @@ docker compose -f docker-compose.dev.yml exec -T redis `
 - 不要把真实 `OPENAI_API_KEY`、GitHub PAT 或 JWT Secret 写进 README、提交、截图或日志。
 - 曾经在聊天中暴露过的 Key 和 PAT 应在对应平台轮换。
 - `backend/.env` 与前端 `.env.local` 必须保持未跟踪。
-

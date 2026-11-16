@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Monitor, Shield, Smartphone } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { LoadingState } from "@/components/states";
 import { apiClient } from "@/lib/api-client";
@@ -17,8 +18,8 @@ function DeviceIcon({ type }: { type?: string | null }) {
   return <Monitor className="h-4 w-4" />;
 }
 
-
 export function ActiveSessions() {
+  const isChinese = useLocale() === "zh";
   const [sessions, setSessions] = useState<Session[] | null>(null);
 
   useEffect(() => {
@@ -37,11 +38,13 @@ export function ActiveSessions() {
       <header className="flex items-end justify-between gap-3">
         <div>
           <p className="text-foreground/55 font-mono text-[11px] tracking-wider uppercase">
-            Active sessions
+            {isChinese ? "活动登录会话" : "Active sessions"}
           </p>
           <h2 className="font-display text-foreground mt-1 text-xl font-semibold tracking-tight">
             {sessions
-              ? `${sessions.length} signed-in device${sessions.length === 1 ? "" : "s"}`
+              ? isChinese
+                ? `${sessions.length} 台已登录设备`
+                : `${sessions.length} signed-in device${sessions.length === 1 ? "" : "s"}`
               : "—"}
           </h2>
         </div>
@@ -49,7 +52,7 @@ export function ActiveSessions() {
           href={ROUTES.SETTINGS_PROFILE}
           className="text-foreground/55 hover:text-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors"
         >
-          Revoke
+          {isChinese ? "管理" : "Revoke"}
           <ArrowUpRight className="h-3 w-3" />
         </Link>
       </header>
@@ -60,7 +63,9 @@ export function ActiveSessions() {
         ) : sessions.length === 0 ? (
           <div className="border-foreground/10 bg-card flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-8 text-center">
             <Shield className="text-foreground/30 h-7 w-7" />
-            <p className="text-foreground/55 text-sm">No active sessions tracked.</p>
+            <p className="text-foreground/55 text-sm">
+              {isChinese ? "暂无活动登录会话。" : "No active sessions tracked."}
+            </p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -79,15 +84,22 @@ export function ActiveSessions() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-foreground truncate text-sm font-medium">
-                    {s.device_name || "Unknown device"}
+                    {s.device_name &&
+                    !["unknown browser", "unknown device"].includes(s.device_name.toLowerCase())
+                      ? s.device_name
+                      : isChinese
+                        ? "未知浏览器"
+                        : "Unknown browser"}
                     {s.is_current && (
                       <span className="text-foreground/55 ml-2 font-mono text-[10px] tracking-wider uppercase">
-                        This device
+                        {isChinese ? "当前设备" : "This device"}
                       </span>
                     )}
                   </p>
                   <p className="text-foreground/55 text-xs">
-                    {s.ip_address ? `${s.ip_address} · ` : ""}Active {timeAgo(s.last_used_at)}
+                    {s.ip_address ? `${s.ip_address} · ` : ""}
+                    {isChinese ? "最后活动 " : "Active "}
+                    {timeAgo(s.last_used_at)}
                   </p>
                 </div>
               </li>

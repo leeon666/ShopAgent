@@ -3,7 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 interface CodeTab {
   label: string;
@@ -52,7 +52,7 @@ export function CodePreview({ tabs }: CodePreviewProps) {
         <button
           type="button"
           onClick={onCopy}
-          aria-label="Copy code"
+          aria-label={uiText("复制代码", "Copy code")}
           className="text-foreground/55 hover:text-foreground mr-3 inline-flex items-center gap-1.5 rounded px-2 py-1 font-mono text-xs transition-colors"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

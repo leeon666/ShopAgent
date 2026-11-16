@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Database, MessageSquare, Sparkles, Star, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, uiText } from "@/lib/utils";
 
 import { AnimatedNumber } from "./animated-number";
 import { HeroDemo } from "./hero-demo";
@@ -36,29 +36,6 @@ interface HeroProps {
 /** Decorative avatar stack — initials only, no images needed. */
 const AVATARS = ["AK", "MR", "JP", "SL", "DN"];
 
-const FLOAT_PILLS = [
-  {
-    icon: MessageSquare,
-    label: "Real-time chat",
-    className: "left-[-12px] top-12 md:left-[-32px] md:top-16 float-y",
-  },
-  {
-    icon: Database,
-    label: "Connected to your data",
-    className: "right-[-8px] top-24 md:right-[-40px] md:top-28 float-y-delayed",
-  },
-  {
-    icon: Wrench,
-    label: "Acts on your behalf",
-    className: "left-[8%] bottom-[-18px] md:left-[12%] md:bottom-[-24px] float-y-delayed",
-  },
-  {
-    icon: Sparkles,
-    label: "Always on",
-    className: "right-[10%] bottom-[-12px] md:right-[12%] md:bottom-[-20px] float-y",
-  },
-];
-
 export function Hero({
   eyebrow,
   title,
@@ -70,6 +47,28 @@ export function Hero({
   stats,
   theme = "dark",
 }: HeroProps) {
+  const floatPills = [
+    {
+      icon: MessageSquare,
+      label: uiText("实时对话", "Real-time chat"),
+      className: "left-[-12px] top-12 md:left-[-32px] md:top-16 float-y",
+    },
+    {
+      icon: Database,
+      label: uiText("连接你的数据", "Connected to your data"),
+      className: "right-[-8px] top-24 md:right-[-40px] md:top-28 float-y-delayed",
+    },
+    {
+      icon: Wrench,
+      label: uiText("代你执行操作", "Acts on your behalf"),
+      className: "left-[8%] bottom-[-18px] md:left-[12%] md:bottom-[-24px] float-y-delayed",
+    },
+    {
+      icon: Sparkles,
+      label: uiText("持续在线", "Always on"),
+      className: "right-[10%] bottom-[-12px] md:right-[12%] md:bottom-[-20px] float-y",
+    },
+  ];
   return (
     <Section
       theme={theme}
@@ -157,7 +156,7 @@ export function Hero({
           <HeroDemo />
         </div>
 
-        {FLOAT_PILLS.map((pill) => (
+        {floatPills.map((pill) => (
           <div
             key={pill.label}
             className={cn(
@@ -188,4 +187,3 @@ export function Hero({
     </Section>
   );
 }
-

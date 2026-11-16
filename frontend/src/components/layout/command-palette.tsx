@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Command } from "cmdk";
 import {
   Activity,
@@ -38,6 +38,7 @@ interface ConversationItem {
 export function CommandPalette() {
   const router = useRouter();
   const t = useTranslations("nav");
+  const isChinese = useLocale() === "zh";
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -78,7 +79,7 @@ export function CommandPalette() {
     <Command.Dialog
       open={open}
       onOpenChange={setOpen}
-      label="Command palette"
+      label={isChinese ? "命令面板" : "Command palette"}
       shouldFilter
       overlayClassName="bg-background/50 fixed inset-0 z-[60] backdrop-blur-sm"
       contentClassName="border-foreground/15 bg-card text-foreground fixed left-1/2 top-[12vh] z-[61] w-[min(92vw,640px)] -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl"
@@ -89,7 +90,7 @@ export function CommandPalette() {
           autoFocus
           value={search}
           onValueChange={setSearch}
-          placeholder="Search or jump to…"
+          placeholder={isChinese ? "搜索或跳转到…" : "Search or jump to…"}
           className="text-foreground placeholder:text-foreground/45 flex-1 bg-transparent text-sm outline-none"
         />
         <kbd className="border-foreground/15 text-foreground/55 hidden rounded-md border px-1.5 py-0.5 font-mono text-[10px] sm:inline-block">
@@ -99,30 +100,30 @@ export function CommandPalette() {
 
       <Command.List className="max-h-[60vh] overflow-y-auto px-2 py-2">
         <Command.Empty className="text-foreground/55 px-4 py-10 text-center text-sm">
-          No matches.
+          {isChinese ? "没有匹配结果。" : "No matches."}
         </Command.Empty>
 
-        <Group heading="Quick actions">
+        <Group heading={isChinese ? "快捷操作" : "Quick actions"}>
           <PaletteItem
             icon={Plus}
-            label="Start new chat"
+            label={isChinese ? "新建对话" : "Start new chat"}
             onSelect={() => go(ROUTES.CHAT)}
             shortcut="⌘N"
           />
           <PaletteItem
             icon={Database}
-            label="Upload to knowledge base"
+            label={isChinese ? "上传到知识库" : "Upload to knowledge base"}
             onSelect={() => go(ROUTES.RAG)}
           />
         </Group>
 
         {conversations.length > 0 && (
-          <Group heading="Recent conversations">
+          <Group heading={isChinese ? "最近对话" : "Recent conversations"}>
             {conversations.slice(0, 8).map((c) => (
               <PaletteItem
                 key={c.id}
                 icon={MessageSquare}
-                label={c.title?.trim() || "Untitled conversation"}
+                label={c.title?.trim() || (isChinese ? "未命名对话" : "Untitled conversation")}
                 onSelect={() => go(`${ROUTES.CHAT}?id=${c.id}`)}
               />
             ))}
@@ -205,11 +206,11 @@ export function CommandPalette() {
       <div className="border-foreground/10 text-foreground/45 flex items-center justify-between border-t px-4 py-2 font-mono text-[10px] tracking-wider uppercase">
         <span className="inline-flex items-center gap-1.5">
           <kbd className="border-foreground/15 rounded border px-1 py-0.5">↑↓</kbd>
-          Navigate
+          {isChinese ? "选择" : "Navigate"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <kbd className="border-foreground/15 rounded border px-1 py-0.5">↵</kbd>
-          Open
+          {isChinese ? "打开" : "Open"}
         </span>
       </div>
     </Command.Dialog>

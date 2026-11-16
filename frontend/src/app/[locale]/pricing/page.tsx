@@ -61,6 +61,27 @@ const TESTIMONIALS = [
   },
 ];
 
+const TESTIMONIALS_ZH = [
+  {
+    quote: "我们替换了四个独立的 SaaS 工具，并在两周内上线了第一个 AI 功能。",
+    name: "Maya Chen",
+    title: "首席技术官",
+    company: "Lumen Labs",
+  },
+  {
+    quote: "价格决策反而最简单，现成的计费流程帮我们节省了一整个冲刺周期。",
+    name: "Jonas Berg",
+    title: "创始人",
+    company: "Stash AI",
+  },
+  {
+    quote: "一个下午就完成了整个运营团队的上手，默认配置非常合理。",
+    name: "Priya Nair",
+    title: "运营负责人",
+    company: "Northwind",
+  },
+];
+
 interface PricingCard {
   id: string;
   name: string;
@@ -90,7 +111,11 @@ function teaserPlanToCard(plan: TeaserPlan, mostPopularLabel: string): PricingCa
   };
 }
 
-function realPlanToCard(plan: PlanRead, billing: "month" | "year"): PricingCard {
+function realPlanToCard(
+  plan: PlanRead,
+  billing: "month" | "year",
+  isChinese: boolean,
+): PricingCard {
   const price = plan.prices.find((p) => p.is_active && p.interval === billing);
   return {
     id: plan.id,
@@ -101,14 +126,18 @@ function realPlanToCard(plan: PlanRead, billing: "month" | "year"): PricingCard 
     badge: null,
     features: [
       ...(plan.monthly_credits_base > 0
-        ? [`${plan.monthly_credits_base.toLocaleString()} credits / month`]
+        ? [
+            isChinese
+              ? `每月 ${plan.monthly_credits_base.toLocaleString()} 额度`
+              : `${plan.monthly_credits_base.toLocaleString()} credits / month`,
+          ]
         : []),
       ...Object.entries(plan.features)
         .filter(([, v]) => v === true || typeof v === "string")
         .slice(0, 5)
         .map(([k, v]) => (typeof v === "string" ? v : k.replace(/_/g, " "))),
     ],
-    cta: { label: "Start free trial", href: ROUTES.REGISTER },
+    cta: { label: isChinese ? "开始免费试用" : "Start free trial", href: ROUTES.REGISTER },
     trial: price?.trial_period_days ?? null,
     isStub: false,
   };
@@ -118,6 +147,7 @@ export default function PricingPage() {
   const tNav = useTranslations("marketing");
   const tPricing = useTranslations("marketing.pricing");
   const locale = useLocale();
+  const isChinese = locale === "zh";
 
   const navLinks = useMemo(() => buildMarketingNav((k) => tNav(k)), [tNav]);
   const footerColumns = useMemo(() => buildFooterColumns((k) => tNav(k)), [tNav]);
@@ -144,7 +174,7 @@ export default function PricingPage() {
   const cards: PricingCard[] = usingStub
     ? getTeaserPlans(locale).map((p) => teaserPlanToCard(p, tPricing("mostPopular")))
     : activePlans.map((p, i) => {
-        const card = realPlanToCard(p, billing);
+        const card = realPlanToCard(p, billing, isChinese);
         if (i === 1) {
           return { ...card, featured: true, badge: tPricing("mostPopular") };
         }
@@ -303,7 +333,7 @@ export default function PricingPage() {
               <span className="eyebrow-badge mb-6">{tPricing("loved")}</span>
               <h2 className="text-display-lg">{tPricing("lovedTitle")}</h2>
             </div>
-            <TestimonialGrid items={TESTIMONIALS} />
+            <TestimonialGrid items={isChinese ? TESTIMONIALS_ZH : TESTIMONIALS} />
           </div>
         </Section>
 
@@ -328,4 +358,3 @@ export default function PricingPage() {
     </>
   );
 }
-

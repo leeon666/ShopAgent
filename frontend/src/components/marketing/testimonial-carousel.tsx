@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { useEffect, useState } from "react";
+import { uiText } from "@/lib/utils";
 
 interface Testimonial {
   quote: string;
@@ -45,7 +46,7 @@ export function TestimonialCarousel({ items, autoPlayMs = 7000 }: TestimonialCar
             <button
               type="button"
               onClick={() => setActive((i) => (i - 1 + items.length) % items.length)}
-              aria-label="Previous testimonial"
+              aria-label={uiText("上一条评价", "Previous testimonial")}
               className="border-foreground/20 hover:bg-foreground hover:text-background flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -53,7 +54,7 @@ export function TestimonialCarousel({ items, autoPlayMs = 7000 }: TestimonialCar
             <button
               type="button"
               onClick={() => setActive((i) => (i + 1) % items.length)}
-              aria-label="Next testimonial"
+              aria-label={uiText("下一条评价", "Next testimonial")}
               className="border-foreground/20 hover:bg-foreground hover:text-background flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
             >
               <ChevronRight className="h-4 w-4" />

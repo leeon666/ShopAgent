@@ -6,6 +6,7 @@ import type { LatLngBoundsExpression, LatLngExpression } from "leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
 
 import type { MapSpec } from "@/types";
+import { uiText } from "@/lib/utils";
 
 const DEFAULT_COLOR = "#6366f1";
 
@@ -45,7 +46,7 @@ export default function MapLeaflet({ spec }: { spec: MapSpec }) {
       className="border-foreground/10 h-[320px] w-full rounded-xl border"
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution={`&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ${uiText("贡献者", "contributors")}`}
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {markers.map((m, i) => (

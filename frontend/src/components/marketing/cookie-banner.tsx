@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Cookie, X } from "lucide-react";
+import { useLocale } from "next-intl";
 
 import { ROUTES } from "@/lib/constants";
 
@@ -34,6 +35,7 @@ function writeConsent(consent: CookieConsent) {
 }
 
 export function CookieBanner() {
+  const isChinese = useLocale() === "zh";
   const [show, setShow] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
   const [analytics, setAnalytics] = useState(true);
@@ -103,23 +105,24 @@ export function CookieBanner() {
               id="cookie-banner-title"
               className="text-foreground font-display text-sm font-semibold tracking-tight"
             >
-              We use cookies
+              {isChinese ? "我们使用 Cookie" : "We use cookies"}
             </p>
             <p className="text-foreground/65 mt-1 text-xs leading-relaxed">
-              Essential cookies keep you signed in. Optional ones help us understand how the product
-              is used. See our{" "}
+              {isChinese
+                ? "必要 Cookie 用于维持你的登录状态，可选 Cookie 用于帮助我们了解产品使用情况。查看我们的"
+                : "Essential cookies keep you signed in. Optional ones help us understand how the product is used. See our"}{" "}
               <Link
                 href={ROUTES.LEGAL_COOKIES}
                 className="text-foreground underline-offset-4 hover:underline"
               >
-                cookie policy
+                {isChinese ? " Cookie 政策" : " cookie policy"}
               </Link>
-              .
+              {isChinese ? "。" : "."}
             </p>
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={isChinese ? "关闭" : "Close"}
             onClick={close}
             className="text-foreground/45 hover:text-foreground hover:bg-foreground/5 -mt-1 -mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
           >
@@ -130,21 +133,33 @@ export function CookieBanner() {
         {showPrefs && (
           <div className="border-foreground/10 space-y-3 border-t px-5 py-4">
             <Toggle
-              label="Essential"
-              description="Required to keep you signed in. Cannot be disabled."
+              label={isChinese ? "必要 Cookie" : "Essential"}
+              description={
+                isChinese
+                  ? "维持登录状态所必需，无法关闭。"
+                  : "Required to keep you signed in. Cannot be disabled."
+              }
               checked
               disabled
               onChange={() => {}}
             />
             <Toggle
-              label="Analytics"
-              description="Aggregated, anonymized usage data."
+              label={isChinese ? "分析 Cookie" : "Analytics"}
+              description={
+                isChinese
+                  ? "用于聚合、匿名化的使用数据分析。"
+                  : "Aggregated, anonymized usage data."
+              }
               checked={analytics}
               onChange={setAnalytics}
             />
             <Toggle
-              label="Functional"
-              description="Remembers preferences (theme, onboarding state)."
+              label={isChinese ? "功能 Cookie" : "Functional"}
+              description={
+                isChinese
+                  ? "记住主题、初始化状态等偏好设置。"
+                  : "Remembers preferences (theme, onboarding state)."
+              }
               checked={functional}
               onChange={setFunctional}
             />
@@ -159,14 +174,14 @@ export function CookieBanner() {
                 onClick={savePrefs}
                 className="bg-foreground text-background hover:bg-foreground/90 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
               >
-                Save preferences
+                {isChinese ? "保存偏好" : "Save preferences"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowPrefs(false)}
                 className="text-foreground/55 hover:text-foreground text-xs font-medium"
               >
-                Back
+                {isChinese ? "返回" : "Back"}
               </button>
             </>
           ) : (
@@ -176,21 +191,21 @@ export function CookieBanner() {
                 onClick={acceptAll}
                 className="bg-foreground text-background hover:bg-foreground/90 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
               >
-                Accept all
+                {isChinese ? "全部接受" : "Accept all"}
               </button>
               <button
                 type="button"
                 onClick={rejectAll}
                 className="border-foreground/15 hover:border-foreground/40 text-foreground inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-medium transition-colors"
               >
-                Reject optional
+                {isChinese ? "拒绝可选 Cookie" : "Reject optional"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowPrefs(true)}
                 className="text-foreground/55 hover:text-foreground ml-auto text-xs font-medium"
               >
-                Preferences
+                {isChinese ? "偏好设置" : "Preferences"}
               </button>
             </>
           )}

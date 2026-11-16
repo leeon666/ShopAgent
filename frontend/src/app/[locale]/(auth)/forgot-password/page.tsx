@@ -10,9 +10,10 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const isChinese = locale === "zh";
   return pageMetadata({
-    title: "Reset password",
-    description: "Reset your account password.",
+    title: isChinese ? "重置密码" : "Reset password",
+    description: isChinese ? "重置账户密码。" : "Reset your account password.",
     path: "/forgot-password",
     locale,
     noindex: true,
