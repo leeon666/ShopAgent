@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 _COLLECTION_NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]{0,63}$")
 _RESERVED_COLLECTION_NAMES = frozenset({"all"})
+_VECTOR_TABLE_PREFIX = "rag_collection_"
+_LEGACY_VECTOR_TABLE_PREFIX = "rag_"
 
 
 class BaseVectorStore(ABC):
@@ -175,12 +177,68 @@ class PgVectorStore(BaseVectorStore):
 
     def _table(self, name: str) -> str:
         """Get validated table name for a collection."""
-        return f"rag_{_validate_collection_name(name)}"
+        return f"{_VECTOR_TABLE_PREFIX}{_validate_collection_name(name)}"
+
+    def _legacy_table(self, name: str) -> str:
+        """Get the legacy table name used before the dedicated vector namespace."""
+        return f"{_LEGACY_VECTOR_TABLE_PREFIX}{_validate_collection_name(name)}"
+
+    async def _table_exists(self, session: AsyncSession, table: str) -> bool:
+        result = await session.execute(
+            text(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_name = :table AND table_schema = 'public'"
+            ),
+            {"table": table},
+        )
+        return result.scalar() is not None
+
+    async def _migrate_legacy_collection(self, session: AsyncSession, name: str) -> None:
+        """Move a legacy ``rag_<collection>`` vector table into the safe namespace.
+
+        The old scheme used ``rag_<collection>``. A collection called
+        ``documents`` therefore mapped to ``rag_documents``, which is already
+        the metadata table for uploaded files. Legacy tables are renamed only
+        if they actually contain an ``embedding`` column, so metadata tables are
+        never touched.
+        """
+        table = self._table(name)
+        legacy = self._legacy_table(name)
+        if await self._table_exists(session, table):
+            return
+        result = await session.execute(
+            text(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = :table "
+                "AND column_name = 'embedding'"
+            ),
+            {"table": legacy},
+        )
+        if result.scalar() is None:
+            return
+        await session.execute(text(f"ALTER TABLE {legacy} RENAME TO {table}"))
+
+    async def _migrate_all_legacy_collections(self, session: AsyncSession) -> None:
+        """Migrate every legacy RAG vector table discovered in PostgreSQL."""
+        result = await session.execute(
+            text(
+                "SELECT table_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND column_name = 'embedding' "
+                "AND table_name LIKE 'rag_%' "
+                "AND table_name NOT LIKE 'rag_collection_%'"
+            )
+        )
+        for (legacy,) in result.fetchall():
+            name = legacy.removeprefix(_LEGACY_VECTOR_TABLE_PREFIX)
+            if not _COLLECTION_NAME_RE.fullmatch(name):
+                continue
+            await self._migrate_legacy_collection(session, name)
 
     async def _ensure_collection(self, name: str) -> None:
         """Create table for collection if not exists."""
         table = self._table(name)
         async with self.async_session() as session:
+            await self._migrate_legacy_collection(session, name)
             await session.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             await session.execute(
                 text(f"""
@@ -205,14 +263,9 @@ class PgVectorStore(BaseVectorStore):
         """Return True if the backing table for a collection exists."""
         table = self._table(name)
         async with self.async_session() as session:
-            result = await session.execute(
-                text(
-                    "SELECT 1 FROM information_schema.tables "
-                    "WHERE table_name = :table AND table_schema = 'public'"
-                ),
-                {"table": table},
-            )
-            return result.scalar() is not None
+            await self._migrate_legacy_collection(session, name)
+            await session.commit()
+            return await self._table_exists(session, table)
 
     async def insert_document(self, collection_name: str, document: Document) -> None:
         table = self._table(collection_name)
@@ -244,6 +297,8 @@ class PgVectorStore(BaseVectorStore):
     ) -> list[SearchResult]:
         table = self._table(collection_name)
         query_vector = self.embedder.embed_query(query)
+        if not await self._collection_exists(collection_name):
+            return []
 
         # Parse the shared `parent_doc_id == "<value>"` filter format and apply
         # it as a parameterised WHERE clause to avoid returning results from
@@ -283,6 +338,8 @@ class PgVectorStore(BaseVectorStore):
         ]
 
     async def get_collection_info(self, collection_name: str) -> CollectionInfo:
+        if not await self._collection_exists(collection_name):
+            return CollectionInfo(name=collection_name, total_vectors=0, dim=self.dim)
         table = self._table(collection_name)
         async with self.async_session() as session:
             result = await session.execute(text(f"SELECT COUNT(*) FROM {table}"))
@@ -290,12 +347,16 @@ class PgVectorStore(BaseVectorStore):
         return CollectionInfo(name=collection_name, total_vectors=count, dim=self.dim)
 
     async def delete_collection(self, collection_name: str) -> None:
+        if not await self._collection_exists(collection_name):
+            return
         table = self._table(collection_name)
         async with self.async_session() as session:
             await session.execute(text(f"DROP TABLE IF EXISTS {table}"))
             await session.commit()
 
     async def delete_document(self, collection_name: str, document_id: str) -> None:
+        if not await self._collection_exists(collection_name):
+            return
         table = self._table(collection_name)
         sanitized = self._sanitize_id(document_id)
         async with self.async_session() as session:
@@ -326,11 +387,12 @@ class PgVectorStore(BaseVectorStore):
 
     async def list_collections(self) -> list[str]:
         async with self.async_session() as session:
+            await self._migrate_all_legacy_collections(session)
+            await session.commit()
             result = await session.execute(
                 text(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'rag_%' AND table_schema = 'public'"
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_name LIKE 'rag_collection_%' AND table_schema = 'public'"
                 )
             )
-            # removeprefix (Python 3.9+) strips only the leading "rag_" occurrence,
-            # unlike str.replace which would also hit inner occurrences.
-            return [row[0].removeprefix("rag_") for row in result.fetchall()]
+            return [row[0].removeprefix(_VECTOR_TABLE_PREFIX) for row in result.fetchall()]

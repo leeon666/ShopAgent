@@ -32,22 +32,22 @@ def get_retrieval_service() -> "BaseRetrievalService":
 
 def _format_results(results: list[Any]) -> str:
     if not results:
-        return "No relevant documents found in the knowledge base."
+        return "知识库中未找到相关内容。"
     formatted = []
     for i, result in enumerate(results, start=1):
-        source = result.metadata.get("filename", "unknown")
+        source = result.metadata.get("filename", "未知来源")
         page = result.metadata.get("page_num", "")
         chunk = result.metadata.get("chunk_num", "")
         col = result.metadata.get("collection", "")
-        page_info = f", page {page}" if page else ""
-        chunk_info = f", chunk {chunk}" if chunk else ""
+        page_info = f", 第 {page} 页" if page else ""
+        chunk_info = f", 第 {chunk} 个片段" if chunk else ""
         col_info = f" [{col}]" if col else ""
         formatted.append(
-            f"[{i}] Source: {source}{page_info}{chunk_info}{col_info} (score: {result.score:.3f})\n"
+            f"[{i}] 来源: {source}{page_info}{chunk_info}{col_info} (相关度: {result.score:.3f})\n"
             f"{result.content}"
         )
     return (
-        "Search results (cite inline using [1], [2], etc. — do NOT list sources at the end):\n\n"
+        "知识库检索结果 (正文中使用 [1]、[2] 等行内引用, 不要在末尾重复列出来源):\n\n"
         + "\n\n".join(formatted)
     )
 
@@ -81,7 +81,7 @@ async def search_knowledge_base(
         try:
             all_collections = await service.store.list_collections()
             if not all_collections:
-                return "No collections found in the knowledge base."
+                return "知识库中暂无可用集合。"
             if len(all_collections) == 1:
                 results = await service.retrieve(
                     query=query, collection_name=all_collections[0], limit=top_k
@@ -97,11 +97,24 @@ async def search_knowledge_base(
                 details={"error": str(e)},
             ) from e
     else:
-        results = await service.retrieve(
-            query=query,
-            collection_name=target_collection,
-            limit=top_k,
-        )
+        # If the caller did not name a collection and the configured default
+        # has not been populated yet, search the collections that actually
+        # exist instead of querying a missing table.
+        available = await service.store.list_collections() if collection is None else []
+        if collection is None and target_collection not in available:
+            if not available:
+                return "知识库中暂无可用集合。"
+            results = await service.retrieve_multi(
+                query=query,
+                collection_names=available,
+                limit=top_k,
+            )
+        else:
+            results = await service.retrieve(
+                query=query,
+                collection_name=target_collection,
+                limit=top_k,
+            )
 
     return _format_results(results)
 

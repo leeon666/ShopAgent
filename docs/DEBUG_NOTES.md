@@ -128,6 +128,41 @@ npm run build
 
 构建结果只保留 `zh` 和 `en` 两套静态路由。
 
+### 知识库检索误查 rag_documents 元数据表
+
+现象：Agent 调用 `search_documents` 时 PostgreSQL 报错
+`column "content" does not exist`，实际 SQL 为 `FROM rag_documents`。
+
+根因：旧向量表命名规则是 `rag_<collection>`。默认集合 `documents` 被映射为
+`rag_documents`，与保存上传文件元数据的业务表同名，检索因此查到了错误表。
+集合扫描还会把 `rag_documents` 元数据表误认为向量集合。
+
+修复：
+
+1. 向量表改用独立前缀 `rag_collection_`。
+2. 首次访问时自动识别带 `embedding` 字段的旧表，并将它们迁移到新前缀。
+3. 集合扫描只识别 `rag_collection_%`，不会再暴露 `rag_documents`。
+4. 默认集合不存在时，自动在现有集合中执行跨集合检索。
+5. 知识库工具结果和空结果提示改为中文。
+6. `rag/status/stream` 的依赖注入改为使用 lifespan 生命周期中的共享 Redis 客户端，
+   修复 SSE 请求 500。
+
+迁移后的本地表：
+
+```text
+rag_collection_after_sales_policies
+rag_documents                  # 仅保存上传文件元数据，不再是向量集合
+```
+
+验证：
+
+- `list_collections()` 返回 `['after_sales_policies']`
+- 查询“破损商品需要提供什么证据”可命中 3 条政策
+- 默认 collection 缺失时会回退到现有集合
+- `/api/v1/rag/status/stream` 返回 `200 text/event-stream`
+- 聊天页重新执行“总结知识库”成功，没有再出现 SQL 错误
+- 工具标题显示“当前日期与时间”“检索文档”，不再显示英文 Running 文案
+
 ## 已实证的闭环
 
 1. DeepSeek `deepseek-flash` 可访问，并返回 Token usage。

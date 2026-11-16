@@ -93,6 +93,7 @@ const TOOL_LABELS: Record<string, string> = {
   fetch_url: "打开网页",
   ask_user: "向用户追问",
   ask_user_tool: "向用户追问",
+  current_datetime: "获取当前时间",
   get_order: "查询订单",
   get_logistics: "查询物流",
   get_after_sales_ticket: "查询售后单",

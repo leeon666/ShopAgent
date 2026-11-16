@@ -71,6 +71,7 @@ export function ToolCallCard({ toolCall, defaultExpanded = false }: ToolCallCard
   const hasSpecialRenderer = isDateTime || isRAGSearch || isWebSearch || isAskUser;
   const toolNameZh: Record<string, string> = {
     get_current_datetime: "当前日期与时间",
+    current_datetime: "当前日期与时间",
     search_knowledge_base: "知识库检索",
     search_documents: "知识库检索",
     web_search_tool: "网页搜索",
