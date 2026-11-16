@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores";
 import { apiClient, ApiError } from "@/lib/api-client";
 import type { User, LoginRequest, RegisterRequest } from "@/types";
 import { ROUTES } from "@/lib/constants";
+import { defaultLocale } from "@/i18n";
 import { isAppAdmin } from "@/lib/utils";
 
 // Session-level singletons so /auth/me runs ONCE per page load no matter how
@@ -68,6 +70,7 @@ function runAuthCheck(setUser: (u: User | null) => void): Promise<void> {
 
 export function useAuth() {
   const router = useRouter();
+  const locale = useLocale();
   const { user, isAuthenticated, isLoading, setUser, setLoading, logout } = useAuthStore();
 
   // Check auth status once per session. /auth/me returns the access_token in
@@ -89,13 +92,14 @@ export function useAuth() {
         setUser(response.user);
         useAuthStore.getState().setAccessToken(response.access_token);
         authChecked = true; // login already populated user + token; skip /auth/me
-        router.push(isAppAdmin(response.user) ? ROUTES.DASHBOARD : ROUTES.CHAT);
+        const target = isAppAdmin(response.user) ? ROUTES.DASHBOARD : ROUTES.SHOP;
+        router.push(locale === defaultLocale ? target : `/${locale}${target}`);
         return response;
       } finally {
         setLoading(false);
       }
     },
-    [router, setUser, setLoading],
+    [locale, router, setUser, setLoading],
   );
 
   const register = useCallback(async (data: RegisterRequest) => {

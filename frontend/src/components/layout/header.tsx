@@ -4,18 +4,15 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   Activity,
-  Building2,
   ChevronDown,
-  CreditCard,
-  Database,
   LayoutDashboard,
   LogOut,
   Menu,
   MessageSquare,
-  Receipt,
   Search,
   Settings,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
   Users,
@@ -49,6 +46,7 @@ type NavEntry =
 
 const NAV: NavEntry[] = [
   { kind: "link", labelKey: "dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { kind: "link", labelKey: "shop", href: ROUTES.SHOP, icon: ShoppingBag },
   { kind: "link", labelKey: "chat", href: ROUTES.CHAT, icon: MessageSquare },
   {
     kind: "menu",
@@ -125,7 +123,7 @@ export function Header() {
           </Button>
 
           <Link
-            href={ROUTES.DASHBOARD}
+            href={ROUTES.SHOP}
             className="flex items-center gap-2 pr-1 text-sm font-bold tracking-tight sm:text-base"
           >
             <span

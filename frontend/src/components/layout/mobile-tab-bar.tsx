@@ -6,14 +6,13 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   MessageSquare,
-  Search,
   Settings,
+  ShoppingBag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { useAuth } from "@/hooks";
 import { ROUTES } from "@/lib/constants";
-import { cn, isAppAdmin } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface TabItem {
   label: string;
@@ -27,30 +26,17 @@ interface TabItem {
 export function MobileTabBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
   const t = useTranslations("nav");
 
   const stripped = pathname.replace(/^\/[a-z]{2}/, "");
 
   const items: TabItem[] = [
+    { label: t("shop"), href: ROUTES.SHOP, icon: ShoppingBag, startsWith: true },
     { label: t("chat"), href: ROUTES.CHAT, icon: MessageSquare, startsWith: true },
     {
       label: t("home"),
-      href: isAppAdmin(user) ? ROUTES.DASHBOARD : ROUTES.CHAT,
+      href: ROUTES.DASHBOARD,
       icon: LayoutDashboard,
-    },
-    {
-      label: t("search"),
-      icon: Search,
-      onClick: () => {
-        // Trigger global ⌘K command palette via synthetic keyboard event.
-        const event = new KeyboardEvent("keydown", {
-          key: "k",
-          metaKey: true,
-          bubbles: true,
-        });
-        document.dispatchEvent(event);
-      },
     },
     { label: t("settings"), href: ROUTES.SETTINGS, icon: Settings, startsWith: true },
   ];

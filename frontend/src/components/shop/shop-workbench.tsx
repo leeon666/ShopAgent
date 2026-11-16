@@ -165,13 +165,16 @@ export function ShopWorkbench() {
     () => tickets.filter((ticket) => ticket.order_id === selectedOrder?.id),
     [tickets, selectedOrder?.id],
   );
+  const orderProposals = useMemo(() => {
+    const ticketIds = new Set(orderTickets.map((ticket) => ticket.id));
+    return proposals.filter((proposal) => ticketIds.has(proposal.ticket_id));
+  }, [orderTickets, proposals]);
   const selectedTicket = useMemo(
     () =>
       orderTickets.find((ticket) => ticket.id === selectedTicketId) ??
       orderTickets[0] ??
-      tickets.find((ticket) => ticket.id === selectedTicketId) ??
-      tickets[0],
-    [orderTickets, selectedTicketId, tickets],
+      null,
+    [orderTickets, selectedTicketId],
   );
 
   const payMutation = useMutation({
@@ -224,7 +227,7 @@ export function ShopWorkbench() {
   ).length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 pb-6">
+    <div className="grid gap-4 pb-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-muted-foreground font-mono text-[11px] tracking-[0.18em] uppercase">
@@ -233,6 +236,9 @@ export function ShopWorkbench() {
           <h1 className="font-display mt-1 text-2xl font-semibold">售后 Agent 工作台</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
             同一套业务数据里查看订单、工单、Agent 证据与退款提案。高风险动作只能由人工审批。
+          </p>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-xs">
+            使用方式：先点选左侧订单，再点“让 Agent 研判”。无需自己编写专业提示词，系统会自动带入订单和工单信息。
           </p>
         </div>
         <Button
@@ -252,7 +258,7 @@ export function ShopWorkbench() {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="order-2 grid gap-3 sm:grid-cols-2 xl:order-1 xl:grid-cols-4">
         <Metric icon={Box} label="订单" value={orders.length} note="当前登录用户" />
         <Metric icon={PackageCheck} label="开放工单" value={pendingCount} note="待处理或待审批" />
         <Metric
@@ -264,8 +270,8 @@ export function ShopWorkbench() {
         <Metric icon={Sparkles} label="Agent 工具" value={8} note="查询、RAG、提案" />
       </div>
 
-      <div className="grid min-h-[640px] flex-1 gap-4 xl:grid-cols-[310px_minmax(0,1fr)_430px]">
-        <Card className="min-h-0 overflow-hidden p-0">
+      <div className="order-1 grid gap-4 xl:order-2 xl:min-h-[640px] xl:grid-cols-[310px_minmax(0,1fr)_430px]">
+        <Card className="min-h-0 shrink-0 overflow-hidden p-0">
           <div className="border-border border-b px-4 py-3">
             <p className="text-sm font-semibold">业务对象</p>
             <p className="text-muted-foreground mt-1 text-xs">先选订单，再选关联售后单</p>
@@ -311,7 +317,7 @@ export function ShopWorkbench() {
           </div>
         </Card>
 
-        <Card className="min-h-0 overflow-hidden p-0">
+        <Card className="min-h-0 shrink-0 overflow-hidden p-0">
           <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
             <div>
               <p className="text-sm font-semibold">订单与工单上下文</p>
@@ -400,7 +406,7 @@ export function ShopWorkbench() {
                     {admin ? "待审批提案" : "我的提案"}
                   </h3>
                   <div className="mt-2 space-y-2">
-                    {proposals.map((proposal) => (
+                    {orderProposals.map((proposal) => (
                       <div key={proposal.id} className="border-border rounded-xl border p-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-xs">{proposal.proposal_no}</span>
@@ -441,7 +447,7 @@ export function ShopWorkbench() {
                         </div>
                       </div>
                     ))}
-                    {!proposals.length && (
+                    {!orderProposals.length && (
                       <div className="border-border text-muted-foreground rounded-xl border border-dashed p-3 text-xs">
                         暂无提案。让 Agent 研判后，高风险动作会出现在这里。
                       </div>
@@ -498,7 +504,7 @@ export function ShopWorkbench() {
           </div>
         </Card>
 
-        <Card className="flex min-h-[640px] min-w-0 flex-col overflow-hidden p-0">
+        <Card className="flex min-h-[640px] min-w-0 shrink-0 flex-col overflow-hidden p-0">
           <div className="border-border border-b px-4 py-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="text-amber-600 h-4 w-4" />

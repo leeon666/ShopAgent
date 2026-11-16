@@ -74,13 +74,13 @@ interface ChatEmptyStateProps {
 export function ChatEmptyState({
   onPick,
   agentLabel = "pydantic_ai",
-  prompts = DEFAULT_PROMPTS,
+  prompts,
 }: ChatEmptyStateProps) {
   const locale = useLocale();
   const isChinese = locale === "zh";
   const { user } = useAuth();
   const firstName = user?.full_name?.split(" ")[0] || user?.email?.split("@")[0];
-  const activePrompts = isChinese ? CHINESE_PROMPTS : prompts;
+  const activePrompts = prompts ?? (isChinese ? CHINESE_PROMPTS : DEFAULT_PROMPTS);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12 md:py-16">

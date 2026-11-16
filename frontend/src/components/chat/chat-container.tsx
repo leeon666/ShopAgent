@@ -178,7 +178,7 @@ export function ChatContainer({
 
   // Auto-scroll on every messages update unless user has scrolled up
   useEffect(() => {
-    if (userScrolledUpRef.current) return;
+    if (messages.length === 0 || userScrolledUpRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   const { commands: slashCommands } = useSlashCommands();
